@@ -5,6 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>BlackCard — 프리미엄 쇼핑</title>
   <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+        crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+          crossorigin="" defer></script>
 </head>
 <body>
 
@@ -155,7 +161,7 @@
     <div class="checkout-summary" id="checkoutSummary"></div>
     <div class="checkout-actions">
       <button class="cancel-btn" onclick="closeCheckout()">취소</button>
-      <button class="confirm-btn" onclick="placeOrder()">결제 완료 ₩<span id="payAmount">0</span></button>
+      <button class="confirm-btn" onclick="placeOrder()">결제 완료</button>
     </div>
   </div>
 </div>
@@ -215,6 +221,14 @@
     <button class="back-btn" onclick="backToShop()">← 쇼핑 계속</button>
     <h2>📦 배송 추적</h2>
     <div class="tracking-order-info" id="trackingOrderInfo"></div>
+    <div class="tracking-map-wrap">
+      <div class="tracking-map-header">
+        <h3>🗺️ 실시간 위치</h3>
+        <span class="map-legend">📦 물류센터 &nbsp;·&nbsp; 🚚 배송차량 &nbsp;·&nbsp; 🏠 배송지</span>
+      </div>
+      <div id="trackingMap" class="tracking-map"></div>
+      <div class="tracking-map-info" id="trackingMapInfo"></div>
+    </div>
     <div class="tracking-timeline" id="trackingTimeline"></div>
     <div class="tracking-items" id="trackingItems"></div>
     <button class="refresh-btn" onclick="refreshTracking()">🔄 새로고침</button>

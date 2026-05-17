@@ -759,18 +759,18 @@ function generateProducts() {
 const products = generateProducts();
 console.log(`Generated ${products.length} products`);
 
-// ── FLASH DEALS ────────────────────────────────────────────────
+// ── FLASH DEALS (each with negative id to avoid collision) ────
 const flashDeals = [
-  { emoji: '🍾', name: 'Dom Pérignon Vintage 2015', price: 680000, discount: '30%' },
-  { emoji: '🎮', name: 'PlayStation 5 Pro 특가',     price: 749000, discount: '12%' },
-  { emoji: '🥩', name: '미야자키 와규 A5 2kg',        price: 680000, discount: '25%' },
-  { emoji: '💄', name: 'La Mer 크렘 한정 세트',       price: 1490000, discount: '15%' },
-  { emoji: '🎧', name: 'Sony WH-1000XM6',           price: 479000, discount: '13%' },
-  { emoji: '🌹', name: '에콰도르 장미 200송이',       price: 180000, discount: '20%' },
-  { emoji: '☕', name: 'De\'Longhi 에스프레소',       price: 1490000, discount: '17%' },
-  { emoji: '🕯️', name: 'Diptyque 캔들 10종',         price: 380000, discount: '18%' },
-  { emoji: '🍫', name: 'Valrhona 럭셔리 박스',        price: 180000, discount: '22%' },
-  { emoji: '⌚', name: 'Hublot Big Bang 한정판',     price: 28000000, discount: '15%' },
+  { id: -1001, category: 'food',        emoji: '🍾', brand: 'Dom Pérignon', name: 'Dom Pérignon Vintage 2015', price: 680000, original: 950000, rating: 4.9, reviews: 1283, shipping: '냉장 특급배송 (블랙카드 무료)', discount: '30%' },
+  { id: -1002, category: 'electronics', emoji: '🎮', brand: 'Sony',         name: 'PlayStation 5 Pro 특가',     price: 749000, original: 849000, rating: 4.8, reviews: 42031, shipping: '당일 특급배송 (블랙카드 무료)', discount: '12%' },
+  { id: -1003, category: 'food',        emoji: '🥩', brand: 'Wagyu World',  name: '미야자키 와규 A5 2kg 세트',   price: 680000, original: 910000, rating: 4.9, reviews: 8201, shipping: '냉장 당일배송', discount: '25%' },
+  { id: -1004, category: 'beauty',      emoji: '💄', brand: 'La Mer',       name: 'La Mer 크렘 한정 에디션',    price: 1490000, original: 1750000, rating: 4.9, reviews: 12031, shipping: '당일 특급배송 (블랙카드 무료)', discount: '15%' },
+  { id: -1005, category: 'electronics', emoji: '🎧', brand: 'Sony',         name: 'Sony WH-1000XM6 헤드폰',     price: 479000, original: 549000, rating: 4.9, reviews: 58291, shipping: '당일 특급배송 (블랙카드 무료)', discount: '13%' },
+  { id: -1006, category: 'food',        emoji: '🌹', brand: 'Premium',      name: '에콰도르 프리미엄 장미 200송이', price: 180000, original: 225000, rating: 4.8, reviews: 5021, shipping: '냉장 당일배송', discount: '20%' },
+  { id: -1007, category: 'appliance',   emoji: '☕', brand: 'De\'Longhi',   name: 'De\'Longhi 전자동 에스프레소', price: 1490000, original: 1790000, rating: 4.9, reviews: 18201, shipping: '당일 특급배송 (블랙카드 무료)', discount: '17%' },
+  { id: -1008, category: 'beauty',      emoji: '🕯️', brand: 'Diptyque',     name: 'Diptyque 캔들 컬렉션 10종',  price: 380000, original: 460000, rating: 4.7, reviews: 9201, shipping: '당일 특급배송 (블랙카드 무료)', discount: '18%' },
+  { id: -1009, category: 'food',        emoji: '🍫', brand: 'Valrhona',     name: 'Valrhona 그랑 크뤼 럭셔리 박스', price: 180000, original: 230000, rating: 4.9, reviews: 12031, shipping: '당일 특급배송 (블랙카드 무료)', discount: '22%' },
+  { id: -1010, category: 'jewelry',     emoji: '⌚', brand: 'Hublot',       name: 'Hublot Big Bang 한정판',     price: 28000000, original: 33000000, rating: 4.9, reviews: 1823, shipping: '전용 쿠리어 배송', discount: '15%' },
 ];
 
 // ── STATE ──────────────────────────────────────────────────────
@@ -792,11 +792,19 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ── RENDER ─────────────────────────────────────────────────────
+function productImageURL(p) {
+  // Lorem Picsum returns a consistent random real photo per seed
+  return `https://picsum.photos/seed/blk${p.id}/400/280`;
+}
+
 function productCardHTML(p) {
   return `
     <div class="product-card">
       ${p.badge ? `<div class="product-badge ${['VIP','LUXURY','EXCLUSIVE','RARE'].includes(p.badge) ? 'gold' : ''}">${p.badge}</div>` : ''}
-      <div class="product-thumb">${p.emoji}</div>
+      <div class="product-thumb">
+        <img class="product-img" src="${productImageURL(p)}" alt="${escapeHTML(p.name)}" loading="lazy" onerror="this.style.display='none'" />
+        <span class="product-thumb-emoji">${p.emoji}</span>
+      </div>
       <div class="product-info">
         <div class="product-brand">${p.brand}</div>
         <div class="product-name">${escapeHTML(p.name)}</div>
@@ -849,10 +857,10 @@ function updateLoadMoreUI() {
 
 function renderFlashDeals() {
   document.getElementById('flashDeals').innerHTML = flashDeals.map(f => `
-    <div class="flash-item" onclick="alert('🔥 ${f.name} 특가 상품이 장바구니에 담겼습니다!')">
+    <div class="flash-item" onclick="addToCart(${f.id})">
       <div class="flash-thumb">${f.emoji}</div>
       <div class="flash-info">
-        <div class="flash-name">${f.name}</div>
+        <div class="flash-name">${escapeHTML(f.name)}</div>
         <div class="flash-price">₩${f.price.toLocaleString()} <span class="flash-discount">${f.discount}</span></div>
       </div>
     </div>
@@ -920,11 +928,16 @@ function applySortAndRender() {
 }
 
 // ── CART ───────────────────────────────────────────────────────
+function findProduct(id) {
+  return products.find(x => x.id === id) || flashDeals.find(x => x.id === id);
+}
+
 function addToCart(id) {
-  const p = products.find(x => x.id === id);
+  const p = findProduct(id);
+  if (!p) return;
   const existing = cart.find(x => x.id === id);
   if (existing) existing.qty++;
-  else cart.push({ ...p, qty: 1 });
+  else cart.push({ id: p.id, emoji: p.emoji, name: p.name, price: p.price, qty: 1 });
   saveCart();
   updateCartUI();
   showCartToast(p.name);
@@ -995,11 +1008,13 @@ function goToCheckout() {
 
 function openCheckout() {
   const total = cart.reduce((s, x) => s + x.price * x.qty, 0);
-  document.getElementById('payAmount').textContent = total.toLocaleString();
+  const btn = document.querySelector('.confirm-btn');
+  btn.textContent = `결제 완료 ₩${total.toLocaleString()}`;
+  btn.disabled = false;
   document.getElementById('checkoutSummary').innerHTML = `
     ${cart.map(item => `
       <div class="checkout-summary-item">
-        <span>${item.emoji} ${escapeHTML(item.name.slice(0, 26))}... × ${item.qty}</span>
+        <span>${item.emoji} ${escapeHTML(item.name.slice(0, 26))}${item.name.length > 26 ? '...' : ''} × ${item.qty}</span>
         <span>₩${(item.price * item.qty).toLocaleString()}</span>
       </div>
     `).join('')}
@@ -1062,6 +1077,7 @@ function getDeliveryStages(orderedAt) {
 }
 
 async function placeOrder() {
+  if (cart.length === 0) { alert('장바구니가 비어있습니다'); return; }
   const address = document.getElementById('addressInput').value.trim();
   const recipient = document.getElementById('recipientInput').value.trim();
   if (!address || !recipient) { alert('배송지와 받는 분을 입력해주세요'); return; }
@@ -1079,6 +1095,7 @@ async function placeOrder() {
     items: cart.map(({ id, emoji, name, price, qty }) => ({ id, emoji, name, price, qty })),
     total,
     address: `${address} (${recipient})`,
+    addressRaw: address,
     orderedAt: Date.now(),
   };
   saveOrder(order);
@@ -1091,9 +1108,6 @@ async function placeOrder() {
 
   document.getElementById('orderIdDisplay').textContent = currentOrderId;
   document.getElementById('successOverlay').classList.add('open');
-
-  btn.textContent = '결제 완료 ₩' + document.getElementById('payAmount').textContent;
-  btn.disabled = false;
 }
 
 function closeSuccess() {
@@ -1108,6 +1122,159 @@ function goToTracking() {
 
 function backToShop() {
   document.getElementById('trackingPage').classList.add('hidden');
+  destroyTrackingMap();
+}
+
+// ── MAP (Leaflet + OpenStreetMap) ─────────────────────────────
+const WAREHOUSE_LOC = [37.4665, 126.4407]; // 인천 통합 물류센터
+const WAREHOUSE_NAME = '인천 통합 물류센터';
+
+const KNOWN_REGIONS = [
+  ['강남',   [37.4979, 127.0276]],
+  ['강북',   [37.6396, 127.0257]],
+  ['강서',   [37.5509, 126.8495]],
+  ['서초',   [37.4837, 127.0324]],
+  ['송파',   [37.5145, 127.1059]],
+  ['잠실',   [37.5133, 127.1000]],
+  ['마포',   [37.5663, 126.9019]],
+  ['용산',   [37.5326, 126.9904]],
+  ['종로',   [37.5735, 126.9788]],
+  ['홍대',   [37.5563, 126.9220]],
+  ['이태원', [37.5345, 126.9947]],
+  ['여의도', [37.5219, 126.9245]],
+  ['성수',   [37.5446, 127.0560]],
+  ['압구정', [37.5275, 127.0286]],
+  ['청담',   [37.5232, 127.0473]],
+  ['판교',   [37.3947, 127.1112]],
+  ['분당',   [37.3520, 127.1083]],
+  ['일산',   [37.6584, 126.7707]],
+  ['평촌',   [37.3925, 126.9568]],
+  ['수원',   [37.2636, 127.0286]],
+  ['고양',   [37.6584, 126.8320]],
+  ['성남',   [37.4202, 127.1268]],
+  ['용인',   [37.2411, 127.1776]],
+  ['인천',   [37.4563, 126.7052]],
+  ['부산',   [35.1796, 129.0756]],
+  ['해운대', [35.1631, 129.1635]],
+  ['대구',   [35.8714, 128.6014]],
+  ['대전',   [36.3504, 127.3845]],
+  ['광주',   [35.1595, 126.8526]],
+  ['제주',   [33.4996, 126.5312]],
+  ['세종',   [36.4801, 127.2890]],
+  ['울산',   [35.5384, 129.3114]],
+  ['천안',   [36.8151, 127.1139]],
+  ['청주',   [36.6424, 127.4890]],
+  ['전주',   [35.8242, 127.1480]],
+  ['서울',   [37.5665, 126.9780]],
+];
+
+function geocodeAddress(addr) {
+  if (!addr) return [37.5665, 126.9780];
+  for (const [keyword, coords] of KNOWN_REGIONS) {
+    if (addr.includes(keyword)) {
+      let hash = 0;
+      for (let i = 0; i < addr.length; i++) hash = ((hash << 5) - hash + addr.charCodeAt(i)) | 0;
+      const jitter = ((Math.abs(hash) % 400) - 200) / 10000;
+      const jitter2 = ((Math.abs(hash >> 8) % 400) - 200) / 10000;
+      return [coords[0] + jitter, coords[1] + jitter2];
+    }
+  }
+  let hash = 0;
+  for (let i = 0; i < addr.length; i++) hash = ((hash << 5) - hash + addr.charCodeAt(i)) | 0;
+  return [37.50 + ((Math.abs(hash) % 1000) / 10000), 126.95 + ((Math.abs(hash >> 10) % 2000) / 10000)];
+}
+
+function stageProgress(stages) {
+  const map = { ordered: 0.02, paid: 0.05, preparing: 0.08, shipped: 0.30, transit: 0.65, nearby: 0.93, delivered: 1.0 };
+  const current = stages.find(s => s.current);
+  return current ? map[current.key] || 0 : 0;
+}
+
+function interpolate(a, b, t) {
+  return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+}
+
+function distanceKm(a, b) {
+  const R = 6371;
+  const dLat = (b[0] - a[0]) * Math.PI / 180;
+  const dLng = (b[1] - a[1]) * Math.PI / 180;
+  const x = Math.sin(dLat/2)**2 + Math.cos(a[0]*Math.PI/180) * Math.cos(b[0]*Math.PI/180) * Math.sin(dLng/2)**2;
+  return Math.round(2 * R * Math.atan2(Math.sqrt(x), Math.sqrt(1-x)));
+}
+
+function emojiIcon(emoji, extraClass = '') {
+  return L.divIcon({
+    html: `<div class="leaflet-marker-emoji ${extraClass}">${emoji}</div>`,
+    className: 'emoji-marker-wrap',
+    iconSize: [44, 44],
+    iconAnchor: [22, 22],
+  });
+}
+
+let trackingMap = null;
+let mapMarkers = [];
+
+function destroyTrackingMap() {
+  if (trackingMap) {
+    trackingMap.remove();
+    trackingMap = null;
+    mapMarkers = [];
+  }
+}
+
+function renderTrackingMap(addressRaw, stages) {
+  if (typeof L === 'undefined') {
+    document.getElementById('trackingMap').innerHTML =
+      '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888">지도를 불러오는 중...</div>';
+    setTimeout(() => renderTrackingMap(addressRaw, stages), 500);
+    return;
+  }
+
+  const dest = geocodeAddress(addressRaw);
+  const progress = stageProgress(stages);
+  const truckPos = interpolate(WAREHOUSE_LOC, dest, progress);
+  const remainingKm = Math.round(distanceKm(truckPos, dest));
+  const currentStage = stages.find(s => s.current);
+
+  destroyTrackingMap();
+
+  trackingMap = L.map('trackingMap', { zoomControl: true, scrollWheelZoom: false }).setView(truckPos, 11);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap',
+    maxZoom: 19,
+  }).addTo(trackingMap);
+
+  const warehouseMarker = L.marker(WAREHOUSE_LOC, { icon: emojiIcon('📦') })
+    .addTo(trackingMap)
+    .bindTooltip(WAREHOUSE_NAME, { permanent: false, direction: 'top', className: 'leaflet-tooltip-custom' });
+  const destMarker = L.marker(dest, { icon: emojiIcon('🏠') })
+    .addTo(trackingMap)
+    .bindTooltip('배송지', { permanent: false, direction: 'top', className: 'leaflet-tooltip-custom' });
+
+  // Route line — solid for done portion, dashed for remaining
+  L.polyline([WAREHOUSE_LOC, truckPos], { color: '#c9a84c', weight: 4, opacity: 0.9 }).addTo(trackingMap);
+  L.polyline([truckPos, dest], { color: '#c9a84c', weight: 3, opacity: 0.5, dashArray: '6, 8' }).addTo(trackingMap);
+
+  const truckIcon = currentStage?.key === 'delivered' ? '🎉' : '🚚';
+  const truckMarker = L.marker(truckPos, { icon: emojiIcon(truckIcon, 'truck') })
+    .addTo(trackingMap)
+    .bindTooltip(currentStage?.label || '배송중', { permanent: true, direction: 'top', className: 'leaflet-tooltip-custom' });
+
+  mapMarkers = [warehouseMarker, destMarker, truckMarker];
+
+  trackingMap.fitBounds([WAREHOUSE_LOC, dest], { padding: [50, 50], maxZoom: 12 });
+
+  // Map info bar
+  const totalKm = distanceKm(WAREHOUSE_LOC, dest);
+  const traveledKm = Math.max(0, totalKm - remainingKm);
+  document.getElementById('trackingMapInfo').innerHTML = `
+    <div>🚚 <strong>이동 거리</strong> ${traveledKm}km / ${totalKm}km</div>
+    <div>📍 <strong>남은 거리</strong> ${remainingKm}km</div>
+    <div>⏱️ <strong>진행률</strong> ${Math.round(progress * 100)}%</div>
+  `;
+
+  // Invalidate size after layout (in case map container was hidden)
+  setTimeout(() => trackingMap && trackingMap.invalidateSize(), 100);
 }
 
 function showTrackingPage(orderId) {
@@ -1132,6 +1299,8 @@ function renderTrackingPage(order) {
     <p><strong>현재 상태</strong> &nbsp;<span style="color:var(--gold);font-weight:800">${currentStage?.label || '확인 중'}</span></p>
     <p><strong>결제 금액</strong> &nbsp;₩${order.total.toLocaleString()} (블랙카드 자동 결제)</p>
   `;
+
+  renderTrackingMap(order.addressRaw || order.address, order.stages);
 
   document.getElementById('trackingTimeline').innerHTML = `
     <h3 style="margin-bottom:20px;font-size:16px;font-weight:800">배송 현황</h3>
