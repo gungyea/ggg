@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BlackCard — 프리미엄 쇼핑</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-inner">
+    <div class="logo">
+      <span class="logo-icon">◆</span>
+      <span class="logo-text">BlackCard</span>
+      <span class="logo-badge">PREMIUM</span>
+    </div>
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="프리미엄 상품 검색..." />
+      <button onclick="searchProducts()">🔍</button>
+    </div>
+    <div class="header-right">
+      <div class="card-badge" onclick="showCardModal()">
+        <span class="card-chip">💳</span>
+        <div>
+          <div class="card-label">MY BLACK CARD</div>
+          <div class="card-limit">한도 ₩100,000,000</div>
+        </div>
+      </div>
+      <button class="cart-btn" onclick="toggleCart()">
+        🛒 <span id="cartCount">0</span>
+      </button>
+    </div>
+  </div>
+  <!-- Category Nav -->
+  <nav class="category-nav">
+    <button class="cat-btn active" onclick="filterCategory('all', this)">전체</button>
+    <button class="cat-btn" onclick="filterCategory('electronics', this)">전자제품</button>
+    <button class="cat-btn" onclick="filterCategory('fashion', this)">패션/명품</button>
+    <button class="cat-btn" onclick="filterCategory('car', this)">자동차</button>
+    <button class="cat-btn" onclick="filterCategory('travel', this)">여행/호텔</button>
+    <button class="cat-btn" onclick="filterCategory('jewelry', this)">주얼리</button>
+  </nav>
+</header>
+
+<!-- HERO BANNER -->
+<section class="hero">
+  <div class="hero-content">
+    <p class="hero-sub">BlackCard 회원 전용</p>
+    <h1 class="hero-title">당신만을 위한<br/>프리미엄 쇼핑</h1>
+    <p class="hero-desc">한도 1억 블랙카드로 전 세계 명품을 당일 배송받으세요</p>
+    <div class="hero-perks">
+      <span>✈️ 무료 특급배송</span>
+      <span>💎 전 상품 정품 보증</span>
+      <span>🔒 VIP 전용 혜택</span>
+    </div>
+  </div>
+  <div class="hero-card-wrap">
+    <div class="credit-card" onclick="showCardModal()">
+      <div class="cc-top">
+        <span class="cc-brand">◆ BlackCard</span>
+        <span class="cc-type">INFINITE</span>
+      </div>
+      <div class="cc-chip">▣</div>
+      <div class="cc-number">•••• •••• •••• 8888</div>
+      <div class="cc-bottom">
+        <div>
+          <div class="cc-label">CARD HOLDER</div>
+          <div class="cc-value">VIP MEMBER</div>
+        </div>
+        <div>
+          <div class="cc-label">EXPIRES</div>
+          <div class="cc-value">12/30</div>
+        </div>
+        <div class="cc-network">MASTERCARD</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FLASH DEALS -->
+<section class="flash-section">
+  <div class="section-header">
+    <h2>⚡ 오늘의 특가</h2>
+    <div class="countdown" id="countdown">23:59:59</div>
+  </div>
+  <div class="flash-strip" id="flashDeals"></div>
+</section>
+
+<!-- MAIN PRODUCTS -->
+<main class="main-content">
+  <div class="products-header">
+    <h2 id="categoryTitle">전체 상품</h2>
+    <div class="sort-options">
+      <select onchange="sortProducts(this.value)">
+        <option value="default">기본 정렬</option>
+        <option value="price-asc">가격 낮은 순</option>
+        <option value="price-desc">가격 높은 순</option>
+        <option value="rating">평점 높은 순</option>
+      </select>
+    </div>
+  </div>
+  <div class="product-grid" id="productGrid"></div>
+</main>
+
+<!-- CART SIDEBAR -->
+<div class="cart-overlay" id="cartOverlay" onclick="toggleCart()"></div>
+<aside class="cart-sidebar" id="cartSidebar">
+  <div class="cart-header">
+    <h3>🛒 장바구니</h3>
+    <button onclick="toggleCart()">✕</button>
+  </div>
+  <div class="cart-items" id="cartItems"></div>
+  <div class="cart-footer">
+    <div class="cart-total">
+      <span>합계</span>
+      <span id="cartTotal">₩0</span>
+    </div>
+    <button class="checkout-btn" onclick="goToCheckout()">블랙카드로 결제</button>
+  </div>
+</aside>
+
+<!-- CHECKOUT MODAL -->
+<div class="modal-overlay" id="checkoutOverlay">
+  <div class="modal checkout-modal">
+    <h2>💳 블랙카드 결제</h2>
+    <div class="checkout-card-preview">
+      <div class="mini-card">
+        <div>◆ BlackCard INFINITE</div>
+        <div class="mini-card-num">•••• •••• •••• 8888</div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>배송지 주소</label>
+      <input type="text" id="addressInput" placeholder="서울시 강남구 테헤란로 123" />
+    </div>
+    <div class="form-group">
+      <label>받는 분</label>
+      <input type="text" id="recipientInput" placeholder="홍길동" />
+    </div>
+    <div class="form-group">
+      <label>연락처</label>
+      <input type="text" id="phoneInput" placeholder="010-1234-5678" />
+    </div>
+    <div class="checkout-summary" id="checkoutSummary"></div>
+    <div class="checkout-actions">
+      <button class="cancel-btn" onclick="closeCheckout()">취소</button>
+      <button class="confirm-btn" onclick="placeOrder()">결제 완료 ₩<span id="payAmount">0</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- ORDER SUCCESS MODAL -->
+<div class="modal-overlay" id="successOverlay">
+  <div class="modal success-modal">
+    <div class="success-icon">🎉</div>
+    <h2>주문 완료!</h2>
+    <p>블랙카드 결제가 승인되었습니다</p>
+    <div class="order-id-box">주문번호: <strong id="orderIdDisplay"></strong></div>
+    <button class="track-btn" onclick="goToTracking()">배송 추적하기 🚚</button>
+    <button class="cancel-btn" onclick="closeSuccess()">계속 쇼핑</button>
+  </div>
+</div>
+
+<!-- BLACK CARD MODAL -->
+<div class="modal-overlay" id="cardModalOverlay">
+  <div class="modal card-modal">
+    <button class="modal-close" onclick="closeCardModal()">✕</button>
+    <div class="big-card">
+      <div class="bc-top">
+        <span class="bc-brand">◆ BlackCard</span>
+        <span class="bc-type">INFINITE</span>
+      </div>
+      <div class="bc-chip">▣</div>
+      <div class="bc-number">•••• •••• •••• 8888</div>
+      <div class="bc-bottom">
+        <div>
+          <div class="bc-label">CARD HOLDER</div>
+          <div class="bc-value">VIP MEMBER</div>
+        </div>
+        <div>
+          <div class="bc-label">EXPIRES</div>
+          <div class="bc-value">12/30</div>
+        </div>
+        <div class="bc-net">◎◎ MASTERCARD</div>
+      </div>
+    </div>
+    <div class="card-benefits">
+      <h3>블랙카드 혜택</h3>
+      <ul>
+        <li>💳 한도 <strong>₩100,000,000</strong></li>
+        <li>✈️ 공항 라운지 무제한</li>
+        <li>🏨 특급호텔 연 5회 무료</li>
+        <li>🚗 발렛파킹 무제한</li>
+        <li>💎 전 상품 무료 특급배송</li>
+        <li>🎁 월 포인트 적립 3%</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- TRACKING PAGE (hidden) -->
+<div id="trackingPage" class="tracking-page hidden">
+  <div class="tracking-inner">
+    <button class="back-btn" onclick="backToShop()">← 쇼핑 계속</button>
+    <h2>📦 배송 추적</h2>
+    <div class="tracking-order-info" id="trackingOrderInfo"></div>
+    <div class="tracking-timeline" id="trackingTimeline"></div>
+    <div class="tracking-items" id="trackingItems"></div>
+    <button class="refresh-btn" onclick="refreshTracking()">🔄 새로고침</button>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
