@@ -184,6 +184,17 @@ body { font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; backgrou
 }
 .btn-buy:hover { background: var(--gold-light); }
 
+/* LOAD MORE */
+.load-more-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 40px 0 20px; }
+.load-more-info { color: #888; font-size: 13px; font-weight: 600; }
+.load-more-btn {
+  background: var(--black); color: var(--gold); border: 2px solid var(--gold);
+  padding: 14px 48px; border-radius: 30px; font-size: 15px; font-weight: 800;
+  cursor: pointer; transition: all 0.2s; letter-spacing: 1px;
+}
+.load-more-btn:hover { background: var(--gold); color: var(--black); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(201,168,76,0.3); }
+.load-more-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
 /* CART SIDEBAR */
 .cart-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; }
 .cart-overlay.open { display: block; }
