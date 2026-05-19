@@ -779,6 +779,7 @@ let filteredProducts = [...products];
 let currentSort = 'default';
 let renderedCount = 0;
 let currentOrderId = null;
+let trackingReturnPath = 'shop'; // 'shop' | 'history'
 const PAGE_SIZE = 36;
 
 function saveCart() { localStorage.setItem('blackcard_cart', JSON.stringify(cart)); }
@@ -792,14 +793,151 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ── RENDER ─────────────────────────────────────────────────────
+function productKeywords(p) {
+  const n = p.name.toLowerCase();
+  const b = p.brand.toLowerCase();
+  const c = p.category;
+  if (n.includes('iphone'))                                   return 'iphone,smartphone';
+  if (n.includes('macbook'))                                  return 'macbook,laptop';
+  if (n.includes('ipad'))                                     return 'ipad,tablet';
+  if (n.includes('airpods'))                                  return 'airpods,earbuds';
+  if (b === 'apple' && n.includes('watch'))                   return 'apple,watch,smartwatch';
+  if (b === 'apple' && n.includes('studio display'))          return 'apple,monitor,display';
+  if (n.includes('galaxy s') || n.includes('galaxy z'))       return 'samsung,galaxy,smartphone';
+  if (b === 'samsung' && n.includes('book'))                  return 'samsung,laptop';
+  if (n.includes('pixel'))                                    return 'google,pixel,smartphone';
+  if (n.includes('xperia'))                                   return 'sony,smartphone';
+  if (n.includes('인치') || n.includes('qled') || n.includes('oled') && c === 'electronics') return 'television,screen,4k';
+  if (n.includes('headphone') || n.includes('헤드폰') || (n.includes('wh-') || n.includes('qc'))) return 'headphones,audio';
+  if (n.includes('earbuds') || n.includes('이어버드'))        return 'earbuds,wireless';
+  if (n.includes('soundbar') || n.includes('사운드바'))       return 'soundbar,speaker';
+  if (n.includes('speaker') || b === 'sonos' || b === 'b&o') return 'speaker,audio,music';
+  if (n.includes('alpha') || n.includes('eos') || n.includes('z9') || n.includes('z8') || n.includes('gfx')) return 'camera,photography,dslr';
+  if (b === 'leica')                                          return 'leica,camera,photography';
+  if (n.includes('drone') || n.includes('드론'))              return 'drone,aerial';
+  if (n.includes('gopro') || n.includes('osmo') || n.includes('액션캠')) return 'action,camera,adventure';
+  if (n.includes('playstation') || n.includes('ps5'))         return 'playstation,gaming,console';
+  if (n.includes('xbox'))                                     return 'xbox,gaming,console';
+  if (n.includes('switch'))                                   return 'nintendo,gaming';
+  if (n.includes('steam deck') || n.includes('rog ally'))     return 'handheld,gaming,portable';
+  if (n.includes('quest') || n.includes('vr'))                return 'vr,virtual reality,gaming';
+  if (n.includes('powerwall') || n.includes('delta pro'))     return 'solar,battery,energy';
+  if (b === 'boston dynamics')                                return 'robot,technology';
+  if (c === 'electronics')                                    return 'technology,electronics,gadget';
+
+  if (b.includes('hermès') || b.includes('hermes'))           return 'hermes,luxury,handbag';
+  if (b === 'chanel' && c === 'fashion')                      return 'chanel,fashion,luxury';
+  if (b === 'louis vuitton')                                  return 'louis vuitton,luxury,bag';
+  if (b === 'dior' && c === 'fashion')                        return 'dior,fashion,luxury';
+  if (b === 'gucci')                                          return 'gucci,luxury,fashion';
+  if (b === 'prada')                                          return 'prada,luxury,bag';
+  if (b === 'bottega veneta')                                 return 'bottega veneta,luxury,bag';
+  if (b === 'balenciaga')                                     return 'sneakers,streetwear,fashion';
+  if (b === 'christian louboutin')                            return 'louboutin,heels,luxury shoes';
+  if (b === 'jimmy choo' || b === 'manolo blahnik')           return 'heels,luxury shoes,fashion';
+  if (b === 'berluti' || b.includes('church'))                return 'oxford shoes,leather,menswear';
+  if (n.includes('스니커') || n.includes('sneaker') || n.includes('trainer')) return 'sneakers,shoes,fashion';
+  if (n.includes('로퍼') || n.includes('loafer'))             return 'loafer,shoes,luxury';
+  if (n.includes('코트') || n.includes('coat') || n.includes('트렌치') || n.includes('trench')) return 'coat,fashion,luxury';
+  if (n.includes('다운') || n.includes('down') || n.includes('parka')) return 'down jacket,fashion,winter';
+  if (n.includes('수트') || n.includes('suit') || n.includes('재킷') || n.includes('jacket')) return 'suit,menswear,fashion';
+  if (b === 'moncler')                                        return 'moncler,down jacket,luxury';
+  if (b === 'canada goose')                                   return 'canada goose,parka,winter';
+  if (b === 'burberry')                                       return 'burberry,trench coat,fashion';
+  if (c === 'fashion')                                        return 'luxury,fashion,style';
+
+  if (b === 'la mer')                                         return 'luxury skincare,cream,beauty';
+  if (n.includes('향수') || n.includes('perfume') || n.includes('오 드'))  return 'perfume,fragrance,luxury';
+  if (n.includes('크림') || n.includes('cream') || n.includes('세럼') || n.includes('serum')) return 'skincare,cream,beauty';
+  if (n.includes('파운데이션') || n.includes('컨실러') || n.includes('립')) return 'makeup,cosmetics,beauty';
+  if (c === 'beauty')                                         return 'cosmetics,beauty,skincare';
+
+  if (n.includes('에스프레소') || n.includes('커피') || n.includes('coffee')) return 'espresso,coffee machine,kitchen';
+  if (n.includes('냉장고') || n.includes('refrigerator'))     return 'refrigerator,kitchen,appliance';
+  if (n.includes('세탁') || n.includes('washing'))            return 'washing machine,laundry';
+  if (n.includes('식기세척') || n.includes('dishwasher'))     return 'dishwasher,kitchen';
+  if (n.includes('에어컨') || n.includes('air conditioner'))  return 'air conditioner,home appliance';
+  if (c === 'appliance')                                      return 'home appliance,kitchen,interior';
+
+  if (n.includes('샴페인') || n.includes('champagne'))        return 'champagne,wine,luxury';
+  if (n.includes('와인') || n.includes('wine'))               return 'wine,bottle,gourmet';
+  if (n.includes('와규') || n.includes('wagyu') || n.includes('스테이크') || n.includes('steak')) return 'wagyu steak,meat,gourmet';
+  if (n.includes('트러플') || n.includes('truffle'))          return 'truffle,gourmet,luxury food';
+  if (n.includes('캐비어') || n.includes('caviar'))           return 'caviar,luxury,gourmet';
+  if (n.includes('초콜릿') || n.includes('chocolate'))        return 'chocolate,gourmet,luxury';
+  if (n.includes('장미') || n.includes('rose') || n.includes('flower')) return 'roses,flowers,bouquet';
+  if (c === 'food')                                           return 'gourmet food,luxury dining,fine dining';
+
+  if (n.includes('골프') || n.includes('golf'))               return 'golf,sport,luxury';
+  if (n.includes('테니스') || n.includes('tennis'))           return 'tennis,sport,luxury';
+  if (n.includes('스키') || n.includes('ski'))                return 'ski,snow,sport';
+  if (n.includes('요트') || n.includes('yacht') || n.includes('sailing')) return 'yacht,sailing,luxury sea';
+  if (c === 'sports')                                         return 'sports,fitness,luxury';
+
+  if (n.includes('소파') || n.includes('sofa') || n.includes('couch')) return 'sofa,luxury interior,living room';
+  if (n.includes('침대') || n.includes('bed'))                return 'luxury bed,bedroom,interior';
+  if (n.includes('조명') || n.includes('lamp') || n.includes('lighting')) return 'lamp,luxury lighting,interior';
+  if (n.includes('테이블') || n.includes('table') || n.includes('책상') || n.includes('desk')) return 'luxury table,furniture,interior';
+  if (c === 'furniture')                                      return 'luxury furniture,interior design';
+
+  if (b === 'ferrari')                                        return 'ferrari,supercar,luxury car';
+  if (b === 'lamborghini')                                    return 'lamborghini,supercar';
+  if (b.includes('rolls') || b.includes('royce'))             return 'rolls royce,luxury car';
+  if (b === 'bentley')                                        return 'bentley,luxury car';
+  if (b === 'porsche')                                        return 'porsche,sports car';
+  if (b === 'mclaren')                                        return 'mclaren,supercar';
+  if (b === 'bugatti')                                        return 'bugatti,hypercar';
+  if (b === 'aston martin')                                   return 'aston martin,luxury car';
+  if (b === 'maserati')                                       return 'maserati,luxury car';
+  if (c === 'car')                                            return 'luxury car,sports car,automobile';
+
+  if (n.includes('호텔') || n.includes('hotel'))              return 'luxury hotel,room,interior';
+  if (n.includes('스위트') || n.includes('suite'))            return 'luxury suite,hotel,interior';
+  if (n.includes('요트') || n.includes('yacht'))              return 'yacht,luxury,sea';
+  if (n.includes('제트') || n.includes('jet') || n.includes('비행기')) return 'private jet,aircraft,luxury';
+  if (n.includes('헬기') || n.includes('helicopter'))        return 'helicopter,aviation,luxury';
+  if (n.includes('우주') || n.includes('space'))              return 'space,rocket,cosmos';
+  if (n.includes('스키') || n.includes('샬레') || n.includes('chalet')) return 'ski chalet,mountain,luxury';
+  if (n.includes('아일랜드') || n.includes('island'))         return 'private island,tropical,luxury';
+  if (c === 'travel')                                         return 'luxury travel,hotel,vacation';
+
+  if (b === 'rolex')                                          return 'rolex,watch,luxury';
+  if (b === 'patek philippe')                                 return 'patek philippe,luxury watch';
+  if (b === 'audemars piguet')                                return 'audemars piguet,royal oak,watch';
+  if (b === 'richard mille')                                  return 'richard mille,luxury watch,sport';
+  if (b.includes('lange'))                                    return 'german watch,luxury watch';
+  if (b === 'vacheron constantin')                            return 'vacheron constantin,watch,luxury';
+  if (b === 'hublot')                                         return 'hublot,watch,luxury sport';
+  if (b === 'omega')                                          return 'omega,watch,moon';
+  if (b === 'tag heuer')                                      return 'tag heuer,watch,sport';
+  if (b === 'panerai')                                        return 'panerai,dive watch,luxury';
+  if (b === 'iwc')                                            return 'iwc,watch,pilot';
+  if (b === 'cartier' && c === 'jewelry')                     return 'cartier,jewelry,luxury';
+  if (b === 'tiffany' && c === 'jewelry')                     return 'tiffany,jewelry,ring';
+  if (b === 'van cleef' || b.includes('van cleef'))           return 'van cleef arpels,jewelry,luxury';
+  if (b === 'bulgari' || b === 'bvlgari')                     return 'bulgari,jewelry,luxury';
+  if (b === 'harry winston')                                  return 'diamond,ring,luxury jewelry';
+  if (b === 'graff')                                          return 'diamond,necklace,luxury jewelry';
+  if (b === 'chopard')                                        return 'chopard,jewelry,luxury';
+  if (b === 'mikimoto')                                       return 'pearl,necklace,jewelry';
+  if (n.includes('다이아') || n.includes('diamond'))          return 'diamond,ring,luxury';
+  if (n.includes('반지') || n.includes('ring'))               return 'ring,jewelry,gold';
+  if (n.includes('목걸이') || n.includes('necklace'))         return 'necklace,jewelry,luxury';
+  if (n.includes('브레이슬렛') || n.includes('bracelet'))     return 'bracelet,jewelry,luxury';
+  if (n.includes('귀걸이') || n.includes('earring'))          return 'earrings,jewelry,luxury';
+  if (c === 'jewelry')                                        return 'jewelry,watch,luxury';
+
+  return 'luxury,premium,elegant';
+}
+
 function productImageURL(p) {
-  // Lorem Picsum returns a consistent random real photo per seed
-  return `https://picsum.photos/seed/blk${p.id}/400/280`;
+  const kw = encodeURIComponent(productKeywords(p));
+  return `https://loremflickr.com/400/280/${kw}?lock=${Math.abs(p.id) % 9000 + 1}`;
 }
 
 function productCardHTML(p) {
   return `
-    <div class="product-card">
+    <div class="product-card" onclick="openProductDetail(${p.id})" style="cursor:pointer">
       ${p.badge ? `<div class="product-badge ${['VIP','LUXURY','EXCLUSIVE','RARE'].includes(p.badge) ? 'gold' : ''}">${p.badge}</div>` : ''}
       <div class="product-thumb">
         <img class="product-img" src="${productImageURL(p)}" alt="${escapeHTML(p.name)}" loading="lazy" onerror="this.style.display='none'" />
@@ -816,8 +954,8 @@ function productCardHTML(p) {
         </div>
         <div class="product-shipping">💳 ${p.shipping}</div>
         <div class="product-actions">
-          <button class="btn-cart" onclick="addToCart(${p.id})">🛒 담기</button>
-          <button class="btn-buy" onclick="buyNow(${p.id})">바로 구매</button>
+          <button class="btn-cart" onclick="event.stopPropagation(); addToCart(${p.id})">🛒 담기</button>
+          <button class="btn-buy" onclick="event.stopPropagation(); buyNow(${p.id})">바로 구매</button>
         </div>
       </div>
     </div>`;
@@ -855,16 +993,36 @@ function updateLoadMoreUI() {
   }
 }
 
+const FLASH_KEYWORDS = {
+  '-1001': 'champagne,dom perignon,wine',
+  '-1002': 'playstation,gaming,console',
+  '-1003': 'wagyu steak,meat,gourmet',
+  '-1004': 'luxury skincare,cream,beauty',
+  '-1005': 'sony headphones,audio',
+  '-1006': 'roses,flowers,bouquet',
+  '-1007': 'espresso,coffee machine,kitchen',
+  '-1008': 'candle,fragrance,luxury',
+  '-1009': 'chocolate,gourmet,luxury',
+  '-1010': 'hublot,watch,luxury',
+};
+
 function renderFlashDeals() {
-  document.getElementById('flashDeals').innerHTML = flashDeals.map(f => `
+  document.getElementById('flashDeals').innerHTML = flashDeals.map(f => {
+    const kw = encodeURIComponent(FLASH_KEYWORDS[String(f.id)] || 'luxury,product');
+    const imgSrc = `https://loremflickr.com/120/120/${kw}?lock=${Math.abs(f.id) % 9000 + 1}`;
+    return `
     <div class="flash-item" onclick="addToCart(${f.id})">
-      <div class="flash-thumb">${f.emoji}</div>
+      <div class="flash-thumb">
+        <img class="flash-img" src="${imgSrc}" alt="${escapeHTML(f.name)}"
+             loading="lazy" onerror="this.style.display='none'" />
+        <span class="flash-emoji-badge">${f.emoji}</span>
+      </div>
       <div class="flash-info">
         <div class="flash-name">${escapeHTML(f.name)}</div>
         <div class="flash-price">₩${f.price.toLocaleString()} <span class="flash-discount">${f.discount}</span></div>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
 // ── COUNTDOWN ──────────────────────────────────────────────────
@@ -1116,6 +1274,7 @@ function closeSuccess() {
 
 // ── TRACKING ───────────────────────────────────────────────────
 function goToTracking() {
+  trackingReturnPath = 'shop';
   document.getElementById('successOverlay').classList.remove('open');
   showTrackingPage(currentOrderId);
 }
@@ -1123,6 +1282,10 @@ function goToTracking() {
 function backToShop() {
   document.getElementById('trackingPage').classList.add('hidden');
   destroyTrackingMap();
+  if (trackingReturnPath === 'history') {
+    trackingReturnPath = 'shop';
+    showOrderHistory();
+  }
 }
 
 // ── MAP (Leaflet + OpenStreetMap) ─────────────────────────────
@@ -1330,6 +1493,145 @@ function renderTrackingPage(order) {
   `;
 }
 
+// ── PRODUCT DETAIL ─────────────────────────────────────────────
+const CATEGORY_NAMES = {
+  electronics: '전자제품', fashion: '패션/명품', beauty: '뷰티/화장품',
+  appliance: '가전/생활', food: '식품/와인', sports: '스포츠/아웃도어',
+  furniture: '가구/인테리어', car: '자동차', travel: '여행/호텔', jewelry: '주얼리/시계'
+};
+
+const PRODUCT_DESCS = {
+  electronics: p => `최첨단 기술과 프리미엄 디자인이 결합된 ${p.brand}의 역작입니다. 블랙카드 회원만을 위한 특별 구성으로, 전용 쿠리어 배송과 완벽한 정품 보증을 제공합니다. 글로벌 최고 수준의 사양으로 당신의 라이프스타일을 한 단계 업그레이드하세요.`,
+  fashion:     p => `${p.brand}의 마스터 장인들이 최고급 소재로 제작한 럭셔리 아이템입니다. 세계 소수만이 소유하는 이 특별한 피스는 블랙카드 회원을 위해 엄선되었습니다. 타임리스한 디자인과 압도적인 품격이 당신의 가치를 표현합니다.`,
+  beauty:      p => `세계 최고의 성분과 기술로 탄생한 ${p.brand}의 럭셔리 뷰티 제품입니다. 피부과 전문의 테스트를 거친 최고급 포뮬라로 눈에 띄는 변화를 경험하세요. 블랙카드 회원 전용 특별 패키징으로 제공됩니다.`,
+  appliance:   p => `${p.brand}의 플래그십 가전으로, 최고의 성능과 프리미엄 디자인을 동시에 제공합니다. 최첨단 공학의 정수를 담은 이 제품은 당신의 일상을 최상급으로 변화시킵니다. 블랙카드 회원 전용 설치 서비스 포함.`,
+  food:        p => `전 세계 최고의 생산지에서 직수입한 최고급 식품입니다. 엄격한 품질 관리와 블랙카드 회원을 위한 특별 냉장 배송 시스템으로 최상의 상태로 배송됩니다. 미슐랭 스타 셰프들이 선택하는 바로 그 품질을 경험하세요.`,
+  sports:      p => `세계 최고의 스포츠 장비 브랜드 ${p.brand}의 프로페셔널 라인입니다. 올림픽 선수들이 선택한 동일한 사양으로, 당신의 퍼포먼스를 한 단계 끌어올립니다. 블랙카드 회원 전용 커스터마이징 서비스 가능.`,
+  furniture:   p => `${p.brand}의 마스터 장인이 최고급 소재로 제작한 프리미엄 인테리어입니다. 밀라노 디자인 위크에서 주목받은 디자인으로, 당신의 공간을 세계 최고의 갤러리처럼 변화시킵니다. 화이트글러브 배송 및 설치 서비스 포함.`,
+  car:         p => `전 세계 자동차 마니아들의 드림카입니다. 최첨단 기술과 압도적인 퍼포먼스, 럭셔리한 인테리어가 완벽하게 결합되었습니다. 블랙카드 회원 전용 VIP 딜리버리 서비스와 전담 컨시어지 지원이 포함됩니다.`,
+  travel:      p => `세상에서 가장 독점적인 여행 경험을 선사합니다. 블랙카드 회원만이 접근할 수 있는 최고급 시설과 서비스로, 평생 잊지 못할 추억을 만들어드립니다. 전담 컨시어지와 24시간 지원 서비스 포함.`,
+  jewelry:     p => `${p.brand}의 최고 장인이 선별한 최상급 원석으로 제작한 명품 주얼리입니다. 수백 년의 전통과 혁신적인 기술이 결합된 이 작품은 블랙카드 회원을 위해 특별히 엄선되었습니다. 국제 감정서 및 보증서 포함.`,
+};
+
+function openProductDetail(id) {
+  const p = findProduct(id);
+  if (!p) return;
+  const discount = Math.round((1 - p.price / p.original) * 100);
+  const starsHTML = '★'.repeat(Math.floor(p.rating)) + (p.rating % 1 >= 0.5 ? '½' : '') + '☆'.repeat(Math.max(0, 5 - Math.ceil(p.rating)));
+  const desc = (PRODUCT_DESCS[p.category] || (q => `${q.brand}의 프리미엄 제품입니다.`))(p);
+  const isGoldBadge = ['VIP','LUXURY','EXCLUSIVE','RARE'].includes(p.badge);
+
+  document.getElementById('productDetailContent').innerHTML = `
+    <div class="pd-image-wrap">
+      <img src="${productImageURL(p)}" alt="${escapeHTML(p.name)}" class="pd-image"
+           onerror="this.style.background='#1a1a1a'" />
+      <span class="pd-emoji-overlay">${p.emoji}</span>
+      ${p.badge ? `<div class="pd-badge ${isGoldBadge ? 'gold' : ''}">${p.badge}</div>` : ''}
+    </div>
+    <div class="pd-body">
+      <div class="pd-brand">${escapeHTML(p.brand)}</div>
+      <h2 class="pd-name">${escapeHTML(p.name)}</h2>
+      <div class="pd-rating-row">
+        <span class="pd-stars">${starsHTML}</span>
+        <span class="pd-rating-num">${p.rating}</span>
+        <span class="pd-reviews">(${p.reviews.toLocaleString()}개 리뷰)</span>
+      </div>
+      <div class="pd-price-section">
+        <span class="pd-price">₩${p.price.toLocaleString()}</span>
+        <span class="pd-original">₩${p.original.toLocaleString()}</span>
+        <span class="pd-discount">${discount}% 할인</span>
+      </div>
+      <div class="pd-shipping-info">💳 ${escapeHTML(p.shipping)}</div>
+      <div class="pd-divider"></div>
+      <div class="pd-specs">
+        <h3>상품 정보</h3>
+        <div class="pd-spec-row"><span>브랜드</span><span>${escapeHTML(p.brand)}</span></div>
+        <div class="pd-spec-row"><span>카테고리</span><span>${CATEGORY_NAMES[p.category] || p.category}</span></div>
+        <div class="pd-spec-row"><span>평점</span><span>⭐ ${p.rating} / 5.0 (${p.reviews.toLocaleString()}건)</span></div>
+        <div class="pd-spec-row"><span>배송</span><span>${escapeHTML(p.shipping)}</span></div>
+        <div class="pd-spec-row"><span>보증</span><span>✅ 정품 100% 보증</span></div>
+        <div class="pd-spec-row"><span>결제</span><span>💳 블랙카드 무이자 할부 가능</span></div>
+      </div>
+      <p class="pd-desc">${escapeHTML(desc)}</p>
+      <div class="pd-actions">
+        <button class="btn-cart pd-btn" onclick="addToCart(${p.id}); closeProductDetail()">🛒 장바구니 담기</button>
+        <button class="btn-buy pd-btn" onclick="closeProductDetail(); buyNow(${p.id})">⚡ 바로 구매</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('productDetailOverlay').classList.add('open');
+}
+
+function closeProductDetail() {
+  document.getElementById('productDetailOverlay').classList.remove('open');
+}
+
+// ── ORDER HISTORY ───────────────────────────────────────────────
+function showOrderHistory() {
+  document.getElementById('orderHistoryPage').classList.remove('hidden');
+  renderOrderHistory();
+}
+
+function backFromHistory() {
+  document.getElementById('orderHistoryPage').classList.add('hidden');
+}
+
+function renderOrderHistory() {
+  const all = JSON.parse(localStorage.getItem('blackcard_orders') || '{}');
+  const orders = Object.values(all).sort((a, b) => b.orderedAt - a.orderedAt);
+  const list = document.getElementById('orderHistoryList');
+
+  if (orders.length === 0) {
+    list.innerHTML = `
+      <div class="order-history-empty">
+        <div style="font-size:64px;margin-bottom:16px">🛍️</div>
+        <h3>아직 주문 내역이 없습니다</h3>
+        <p>블랙카드로 프리미엄 상품을 구매해보세요!</p>
+      </div>`;
+    return;
+  }
+
+  list.innerHTML = orders.map(order => {
+    const stages = getDeliveryStages(order.orderedAt);
+    const currentStage = stages.find(s => s.current);
+    const isDelivered = currentStage?.key === 'delivered';
+    const date = new Date(order.orderedAt).toLocaleDateString('ko-KR', {
+      year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+    const previewItems = order.items.slice(0, 3);
+    return `
+      <div class="order-card">
+        <div class="order-card-header">
+          <div>
+            <div class="order-card-id">주문번호: <strong>${order.orderId}</strong></div>
+            <div class="order-card-date">${date}</div>
+          </div>
+          <div class="order-status-badge ${isDelivered ? 'delivered' : 'shipping'}">${currentStage?.label || '확인 중'}</div>
+        </div>
+        <div class="order-card-items">
+          ${previewItems.map(item => `
+            <div class="order-card-item">
+              <span class="order-item-emoji">${item.emoji}</span>
+              <span class="order-item-name">${escapeHTML(item.name.length > 28 ? item.name.slice(0,28)+'…' : item.name)} × ${item.qty}</span>
+              <span class="order-item-price">₩${(item.price * item.qty).toLocaleString()}</span>
+            </div>`).join('')}
+          ${order.items.length > 3 ? `<div class="order-more-items">외 ${order.items.length - 3}개 상품 더보기</div>` : ''}
+        </div>
+        <div class="order-card-footer">
+          <div class="order-card-total">총 결제: <strong style="color:var(--gold)">₩${order.total.toLocaleString()}</strong></div>
+          <button class="order-track-btn" onclick="trackFromHistory('${order.orderId}')">🚚 배송 추적</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function trackFromHistory(orderId) {
+  trackingReturnPath = 'history';
+  document.getElementById('orderHistoryPage').classList.add('hidden');
+  currentOrderId = orderId;
+  showTrackingPage(orderId);
+}
+
 // ── CARD MODAL ─────────────────────────────────────────────────
 function showCardModal() { document.getElementById('cardModalOverlay').classList.add('open'); }
 function closeCardModal() { document.getElementById('cardModalOverlay').classList.remove('open'); }
@@ -1342,4 +1644,7 @@ document.getElementById('checkoutOverlay').addEventListener('click', e => {
 });
 document.getElementById('successOverlay').addEventListener('click', e => {
   if (e.target === document.getElementById('successOverlay')) closeSuccess();
+});
+document.getElementById('productDetailOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('productDetailOverlay')) closeProductDetail();
 });

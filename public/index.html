@@ -34,6 +34,7 @@
           <div class="card-limit">한도없음</div>
         </div>
       </div>
+      <button class="orders-btn" onclick="showOrderHistory()">📋 내 주문</button>
       <button class="cart-btn" onclick="toggleCart()">
         🛒 <span id="cartCount">0</span>
       </button>
@@ -178,6 +179,14 @@
   </div>
 </div>
 
+<!-- PRODUCT DETAIL MODAL -->
+<div class="modal-overlay" id="productDetailOverlay">
+  <div class="modal product-detail-modal">
+    <button class="modal-close" onclick="closeProductDetail()">✕</button>
+    <div id="productDetailContent"></div>
+  </div>
+</div>
+
 <!-- BLACK CARD MODAL -->
 <div class="modal-overlay" id="cardModalOverlay">
   <div class="modal card-modal">
@@ -212,6 +221,15 @@
         <li>🎁 월 포인트 적립 3%</li>
       </ul>
     </div>
+  </div>
+</div>
+
+<!-- ORDER HISTORY PAGE (hidden) -->
+<div id="orderHistoryPage" class="tracking-page hidden">
+  <div class="tracking-inner">
+    <button class="back-btn" onclick="backFromHistory()">← 쇼핑 계속</button>
+    <h2>📋 내 주문 내역</h2>
+    <div id="orderHistoryList" style="margin-top:24px"></div>
   </div>
 </div>
 
