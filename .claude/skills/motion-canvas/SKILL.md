@@ -1,96 +1,179 @@
 ---
 name: motion-canvas
-description: Programmatic vector animation with Motion Canvas (TypeScript + generators). Use when scaffolding a Motion Canvas project, writing makeScene2D scenes, animating 2D nodes (Rect, Circle, Txt, Code, Latex, Img, Video, Layout, Camera), composing flow with yield*, wiring signals and tweening, syncing audio/voice-over, or rendering to MP4 via FFmpeg. Covers project bootstrap, scene patterns, signals, refs, layout, text/code/latex, shapes, media, camera, transitions, rendering and troubleshooting.
+description: Complete production-ready guide for Motion Canvas with ESM/CommonJS workarounds, full setup templates, and troubleshooting for programmatic video creation using TypeScript
 license: MIT
-compatibility: node >= 18, vite ^4, typescript ^5, @motion-canvas/core ^3, @motion-canvas/2d ^3, @motion-canvas/ffmpeg
 metadata:
-  author: motion-canvas-skill
-  version: "3.17"
-  scope: 2d-animation
-  platforms: [claude-code, cursor, antigravity, zed, opencode, windsurf, copilot, skills.sh]
+  version: 2.0.0
+  author: motion-canvas
+  repo: https://github.com/motion-canvas/motion-canvas
+  tags: [Video, TypeScript, Animation, Motion Canvas, Signals, Generators, Canvas API, Vector, Audio Sync, Vite, ESM]
+  dependencies: ["@motion-canvas/core>=3.0.0", "@motion-canvas/2d>=3.0.0", "@motion-canvas/ui>=3.0.0", "@motion-canvas/vite-plugin>=3.0.0"]
 ---
 
-# Motion Canvas Skill
+# Motion Canvas - Production-Ready Video Creation with TypeScript
 
-Motion Canvas is two things:
+Complete production-ready skill for creating programmatic videos using Motion Canvas, including critical ESM/CommonJS workarounds, full configuration templates, and comprehensive troubleshooting.
 
-1. A **TypeScript library** that programs animations with **generator functions** (`function*` + `yield*`).
-2. An **editor** (Vite + `localhost:9000`) that gives real-time preview, timeline, and Render/export.
+## ⚠️ CRITICAL: ESM/CommonJS Interoperability Issue
 
-It is purpose-built for **informative vector animations**: explainer videos, code visualizations, math animations, product demos synced to voice-over. It is **not** a non-linear video editor.
+**IMPORTANT**: The `@motion-canvas/vite-plugin` package is distributed as CommonJS, which causes import errors in modern ESM projects. The standard `import motionCanvas from '@motion-canvas/vite-plugin'` **WILL NOT WORK**.
 
-This skill works identically in Claude Code, Cursor, Antigravity, Zed, Opencode, Windsurf, Copilot, and any `SKILL.md`-compatible agent. Copy this whole folder to your agent's skill dir, e.g. `~/.claude/skills/motion-canvas`, `.cursor/skills/motion-canvas`, `.agents/skills/motion-canvas`, `.opencode/skills/motion-canvas`.
+You MUST use the `createRequire` workaround documented in the Setup section below.
 
-## When to use / when NOT to use
+## When to use
 
-Use when the user asks to:
+Use this skill whenever you are dealing with Motion Canvas code to obtain domain-specific knowledge about:
 
-- `create / scaffold / init` a Motion Canvas video project
-- `animate / make a scene` with `makeScene2D`, shapes, text, code, latex, diagrams
-- `tween / move / fade / stagger / spring` anything over time
-- `visualize code / algorithm / math formula` with `Code` or `Latex`
-- `add image / video / audio / voice-over` to a scene
-- `pan / zoom camera`, add `transitions` between scenes, make `slides / presentation`
-- `render / export mp4 / png sequence / still frame`
+- Creating animated videos using TypeScript and generator functions
+- Building animations with signals and reactive values
+- Working with vector graphics and Canvas API
+- Synchronizing animations with voice-overs and audio
+- Using the real-time preview editor for instant feedback
+- Implementing procedural animations with flow control
+- Creating informative visualizations and diagrams
+- Animating text, shapes, and custom components
+- **Setting up Motion Canvas projects from scratch with correct configuration**
+- **Troubleshooting common setup and build errors**
 
-Do NOT use for: Premiere-style timeline splicing, webcam editing, DOM web apps, Three.js 3D scenes, Manim Python scenes. If asked for Manim, say so and stop.
+## Core Concepts
 
-## Golden rules (read this before writing any code)
+Motion Canvas allows you to create videos using:
+- **Generator Functions**: Describe animations using JavaScript generators with `yield*` syntax
+- **Signals**: Reactive values that automatically update dependent properties
+- **Real-time Preview**: Live editor with instant preview powered by Vite
+- **TypeScript-First**: Write animations in TypeScript with full IDE support
+- **Canvas API**: Leverage 2D Canvas for high-performance vector rendering
+- **Audio Synchronization**: Sync animations precisely with voice-overs
 
-1. **Every scene is a generator.** `export default makeScene2D(function* (view) { ... })`. Plain `function` never animates.
-2. **Every animation must be `yield*`-ed.** `yield* rect().scale(2, 1)` plays. `rect().scale(2, 1)` without `yield*` only schedules and is skipped. `yield` (no star) = wait exactly one frame.
-3. **Scene imports need `?scene`.** `import example from './scenes/example?scene'` then `makeProject({scenes: [example]})`. Without `?scene` HMR/meta breaks.
-4. **Animate via refs, never by re-creating JSX.** `const r = createRef<Rect>(); view.add(<Rect ref={r} .../>); yield* r().opacity(0, 1).to(1, 1)`.
-5. **Parallel = `all()`, serial = successive `yield*` / `sequence()`.** `yield* all(a().x(100,1), b().fill('red',1))` runs together. Two `yield*` lines run one-after-other.
-6. **Props are signals.** Any prop accepts `value | (() => value)`. Use `() =>` for live binding: `<Circle width={() => radius() * 200} />`.
-7. **Background is `view.fill()`, not CSS.** Static default comes from Video Settings, but per-scene animated bg is `view.fill('#0a0a0a'); yield* view.fill('#111111', 1)`.
-8. **Origin is scene-center.** `x: 0, y: 0` = center. `+x` right, `+y` down. Parent-relative.
-9. **Never use React hooks.** No `useState/useEffect`. Custom JSX runtime only — `new Circle({})` under the hood. Use `createSignal/createRef/createEffect` from `@motion-canvas/core`.
-10. **Never touch `Camera.scale`.** Use `camera().zoom(n, dur)`, `centerOn()`, `reset()`. Never animate `Video.playbackRate` reactively.
+## Complete Setup Guide
 
-If you violate 1-4, output is a frozen frame. Always re-check.
-
-## Bootstrap (new project)
+### Step 1: Initialize Project
 
 ```bash
-npm create motion-canvas@latest
-# prompts: name, path, language: TS (choose TS), plugins: keep ffmpeg ON
-cd <name>
-npm install
-npm start
-# editor at http://localhost:9000
+# Create project directory
+mkdir my-motion-canvas-project
+cd my-motion-canvas-project
+
+# Initialize package.json
+npm init -y
 ```
 
-Resulting layout (see `references/01-bootstrap-project.md` + `assets/`):
+### Step 2: Configure package.json for ESM
+
+**CRITICAL**: Add `"type": "module"` to enable ESM imports.
+
+```json
+{
+  "name": "my-motion-canvas-project",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  }
+}
+```
+
+### Step 3: Install ALL Required Dependencies
+
+**CRITICAL**: Must include `@motion-canvas/ui` - the plugin will fail without it.
+
+```bash
+npm install --save-dev @motion-canvas/core @motion-canvas/2d @motion-canvas/vite-plugin @motion-canvas/ui vite typescript
+```
+
+### Step 4: Create Project Structure
 
 ```
-my-video/
-  vite.config.ts        # motionCanvas() + ffmpeg() plugins
-  tsconfig.json
-  src/
-    project.ts          # makeProject({scenes: [...]})
-    motion-canvas.d.ts
-    scenes/
-      example.tsx       # makeScene2D scene
-  public/
-  output/               # renders go here (gitignored)
+my-motion-canvas-project/
+├── package.json          # "type": "module" required
+├── vite.config.js        # Use .js NOT .ts (see Step 5)
+├── tsconfig.json         # TypeScript configuration
+├── index.html            # HTML entry point
+└── src/
+    ├── project.ts        # Project configuration with scenes
+    └── scenes/
+        └── example.tsx   # Animation scene
 ```
 
-`vite.config.ts` (copy from `assets/vite.config.ts.txt`):
+### Step 5: Create vite.config.js with ESM/CommonJS Workaround
 
-```ts
+**CRITICAL**: Use `vite.config.js` (NOT `.ts`) with the `createRequire` workaround.
+
+**File: `vite.config.js`**
+```javascript
 import {defineConfig} from 'vite';
-import motionCanvas from '@motion-canvas/vite-plugin';
-import ffmpeg from '@motion-canvas/ffmpeg';
+import {createRequire} from 'module';
+
+// WORKAROUND: @motion-canvas/vite-plugin is CommonJS, must use require
+const require = createRequire(import.meta.url);
+const motionCanvasModule = require('@motion-canvas/vite-plugin');
+const motionCanvas = motionCanvasModule.default || motionCanvasModule;
 
 export default defineConfig({
-  plugins: [motionCanvas(), ffmpeg()],
+  plugins: [
+    motionCanvas({
+      project: './src/project.ts',
+    }),
+  ],
 });
 ```
 
-`src/project.ts` (copy from `assets/project.ts.txt`):
+**Why .js instead of .ts?**
+- Vite config runs before TypeScript compilation
+- The `createRequire` workaround works reliably in plain JavaScript
+- Avoids additional type resolution complexity
 
-```ts
+### Step 6: Create tsconfig.json
+
+**CRITICAL**: Include `esModuleInterop` and `allowSyntheticDefaultImports`.
+
+**File: `tsconfig.json`**
+```json
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ES2020",
+    "lib": ["ES2020", "DOM"],
+    "jsx": "react-jsx",
+    "jsxImportSource": "@motion-canvas/2d/lib",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"]
+}
+```
+
+### Step 7: Create index.html
+
+**File: `index.html`**
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Motion Canvas Project</title>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/project.ts"></script>
+</body>
+</html>
+```
+
+### Step 8: Create src/project.ts
+
+**File: `src/project.ts`**
+```typescript
 import {makeProject} from '@motion-canvas/core';
 import example from './scenes/example?scene';
 
@@ -99,125 +182,179 @@ export default makeProject({
 });
 ```
 
-`npm start` = `vite` dev + editor. `npm run build` = `tsc && vite build`.
+### Step 9: Create First Animation Scene
 
-> For full options (`project: string|string[]`, `output`, `bufferedAssets`, `editor`, `proxy`, `audio`, `variables`, `experimentalFeatures`): read `references/01-bootstrap-project.md`.
-
-## Minimal working scene (copy-paste starter)
-
-From `assets/example-scene.tsx`:
-
-```tsx
-import {Rect, makeScene2D} from '@motion-canvas/2d';
-import {all, createRef, waitFor} from '@motion-canvas/core';
+**File: `src/scenes/example.tsx`**
+```typescript
+import {makeScene2D} from '@motion-canvas/2d/lib/scenes';
+import {Circle} from '@motion-canvas/2d/lib/components';
+import {createRef} from '@motion-canvas/core/lib/utils';
+import {all} from '@motion-canvas/core/lib/flow';
 
 export default makeScene2D(function* (view) {
-  const rect = createRef<Rect>();
+  const circleRef = createRef<Circle>();
 
-  view.fill('#0b0b0f'); // animatable background
-  view.add(<Rect ref={rect} size={320} radius={80} fill={'#e13238'} />);
-
-  yield* all(
-    rect().scale(2, 1).to(1, 1),
-    rect().fill('#e6a700', 1).to('#e13238', 1),
+  view.add(
+    <Circle
+      ref={circleRef}
+      size={70}
+      fill="#e13238"
+    />,
   );
-  yield* waitFor(0.5);
+
+  // Animate circle size and position
+  yield* circleRef().size(140, 1);
+  yield* circleRef().position.x(300, 1);
+  yield* circleRef().fill('#e6a700', 1);
+
+  // Parallel animations
+  yield* all(
+    circleRef().scale(1.5, 0.5),
+    circleRef().rotation(360, 1)
+  );
 });
 ```
 
-Scene anatomy:
+### Step 10: Run Development Server
 
-```tsx
-import {Circle, Rect, Layout, Txt, makeScene2D} from '@motion-canvas/2d';
-import {all, sequence, chain, loop, delay, waitFor, waitUntil, createRef, createSignal} from '@motion-canvas/core';
-
-export default makeScene2D(function* (view) {
-  const ref = createRef<Rect>();
-  view.add(<Rect ref={ref} size={200} fill="#e13238" />);
-  yield* waitUntil('start');   // editable marker in editor timeline
-  yield* ref().scale(2, 0.6).to(1, 0.6);
-  yield* all(ref().x(300, 1), ref().rotation(90, 1));
-  yield* waitFor(1);
-});
+```bash
+npm run dev
 ```
 
-## Cheat-sheet (imports + one-liners)
+Open browser at `http://localhost:5173` to see the Motion Canvas editor.
 
-```ts
-// flow
-import {all, any, chain, sequence, loop, delay, spawn, waitFor, waitUntil, useDuration, beginSlide} from '@motion-canvas/core';
-yield* waitFor(1);                 // wait 1s
-yield* waitUntil('label');         // wait for timeline marker
-yield* all(a().x(100,1), b().y(50,1)); // parallel
-yield* sequence(0.1, ...rects.map(r => r.fill('red', 0.5))); // staggered serial with 0.1 gap
-yield* chain(a().x(100,1), a().y(100,1)); // serial on same thread
-yield* loop(3, function*(){ yield* a().x(100,0.5).to(-100,0.5); }); // repeat
-yield* delay(0.5, a().opacity(1, 0.5)); // delayed start
+## Troubleshooting
+
+### Error: `TypeError: motionCanvas is not a function`
+
+**Cause**: ESM/CommonJS interoperability issue with `@motion-canvas/vite-plugin`
+
+**Solution**: Use the `createRequire` workaround in `vite.config.js` (see Step 5)
+
+```javascript
+// ❌ WRONG - Will not work
+import motionCanvas from '@motion-canvas/vite-plugin';
+
+// ✅ CORRECT - Use createRequire
+import {createRequire} from 'module';
+const require = createRequire(import.meta.url);
+const motionCanvasModule = require('@motion-canvas/vite-plugin');
+const motionCanvas = motionCanvasModule.default || motionCanvasModule;
 ```
 
-```ts
-// signals + refs + tweening
-import {createSignal, createComputed, createEffect, createRef, makeRef, createRefArray, createRefMap, tween, map, easeInOutCubic, easeOutQuad, linear, spring, PlopSpring, SmoothSpring, DEFAULT, range} from '@motion-canvas/core';
-const r = createSignal(3);
-const area = createSignal(() => Math.PI * r() * r()); // computed
-r(4);                    // set
-yield* r(10, 1);         // tween to 10 over 1s
-yield* r(4, 1).to(3, 1); // chained tween
-yield* r(DEFAULT, 1);    // reset to initial
-<Circle width={() => r() * 100} /> // reactive binding
-yield* tween(1, v => circle().x(map(-300, 300, easeInOutCubic(v))));
-yield* circle().position([300, -200], 1, easeInOutCubic);
-yield* spring(PlopSpring, -400, 400, 1);
-circle().save(); yield* circle().x(300, 1); yield* circle().restore(1);
+### Error: `Cannot find module '@motion-canvas/ui'`
+
+**Cause**: Missing required dependency
+
+**Solution**: Install the UI package:
+```bash
+npm install --save-dev @motion-canvas/ui
 ```
 
-```tsx
-// nodes (all props accept SignalValue = T | (() => T))
-import {Node, View2D, Camera, Rect, Circle, Polygon, Line, Bezier, Spline, Path, Txt, Code, Latex, Img, Video, SVG, Icon, Grid, Layout} from '@motion-canvas/2d';
-<Rect size={[400,200]} radius={20} fill="#e13238" stroke="#fff" lineWidth={4} />
-<Circle size={320} fill="lightseagreen" />
-<Layout direction="row" gap={40} padding={40} alignItems="center"><Rect size={100} fill="red" /><Rect size={100} fill="blue" /></Layout>
-<Txt fontSize={64} fontWeight={700} fill="#fff">Hello</Txt>
-<Line points={[[ -200,0],[0,-100],[200,0]]} stroke="#fff" lineWidth={6} endArrow />
+### Error: `Property 'default' does not exist on type ...`
+
+**Cause**: TypeScript configuration missing ESM interop settings
+
+**Solution**: Add to `tsconfig.json`:
+```json
+{
+  "compilerOptions": {
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true
+  }
+}
 ```
 
-For full prop tables, Code selection API, Latex groups, Img/Video, Camera, transitions: read the matching reference below. Do not guess props.
+### Warning: `The CJS build of Vite's Node API is deprecated`
 
-## Router — read only what you need
+**Status**: This is a known warning and can be safely ignored. It appears because `@motion-canvas/vite-plugin` is CommonJS. The workaround ensures functionality despite the warning.
 
-| Task | Read |
-|---|---|
-| Scaffold, `project.ts`, `vite.config`, multi-project, audio global, variables | `references/01-bootstrap-project.md` |
-| Scene shell, `view.add`, `all/sequence/chain/loop/delay/spawn`, `waitFor/waitUntil/slides` | `references/02-scenes-flow.md` |
-| `createSignal/computed/effect`, 6 ref patterns, `tween/map/ease/spring/save-restore` | `references/03-signals-refs-tweening.md` |
-| Yoga layout, sizing, positioning, origin, world transforms | `references/04-layout-positioning.md` |
-| `Txt`, `Code` + `selection/word/lines/find*`, `CODE` tag, `LezerHighlighter`, `Latex {{}}` | `references/05-text-code-latex.md` |
-| `Line/Bezier/Spline/Path/SVG/Icon/Grid`, `Img/Video` play/pause | `references/06-shapes-curves-media.md` |
-| Global audio, `sound().trim/gain`, `Camera centerOn/zoom/followCurve/Stage`, transitions | `references/07-audio-camera-transitions.md` |
-| Video Settings, FFmpeg vs PNG sequence, `output/`, stills, PRESENT mode | `references/08-render-export.md` |
-| 8 runnable recipes (stagger grid, signal-driven, code reveal, latex morph, camera pan...) | `references/09-recipes.md` |
-| 15 pitfalls (frozen frame, `?scene`, React hooks, Camera scale...) | `references/10-troubleshooting.md` |
+### Error: `Failed to resolve import "*.tsx?scene"`
 
-Rule: for any non-trivial video, read at least `02 + 03 + 09` before coding.
+**Cause**: Vite plugin not properly loaded or configured
 
-## Rendering (editor + FFmpeg)
+**Solution**:
+1. Verify `vite.config.js` has the correct workaround
+2. Check `project` path points to correct file: `'./src/project.ts'`
+3. Ensure scene imports use `?scene` suffix: `import example from './scenes/example?scene';`
 
-1. `npm start` -> select project/scenes in left panel.
-2. Video Settings (right panel): `Background, Range, Resolution (e.g. 1920x1080), FPS (30/60), Scale, ColorSpace (sRGB), Audio offset, Exporter`.
-3. Exporter: `Video (FFmpeg)` for `.mp4` (needs `npm i @motion-canvas/ffmpeg` + `ffmpeg()` in vite plugins — default ON in bootstrap). `Image sequence` for `PNG/JPEG/WebP` frames.
-4. Press `RENDER` -> `output/<project>/<project>.mp4`. `ABORT` cancels. Camera icon = still to `output/still/`.
-5. Slides: `RENDER dropdown -> PRESENT` for `beginSlide()` navigation.
+### Build fails with TypeScript errors
 
-Details: `references/08-render-export.md`.
+**Solution**:
+1. Verify `tsconfig.json` includes all required options (see Step 6)
+2. Check `jsxImportSource` is set to `@motion-canvas/2d/lib`
+3. Ensure all dependencies are installed
 
-## Validation before you finish
+## How to use
 
-- Run `node scripts/check-scene.mjs src/scenes/*.tsx` — must pass (catches missing `yield*`, missing `?scene`, `useState`, `Camera.scale`).
-- Every scene file default-exports `makeScene2D(function* (view){...})` and every tween/flow is `yield*`-ed.
-- `src/project.ts` imports scenes with `?scene` and lists them in `makeProject({scenes})`.
-- `vite.config.ts` has both `motionCanvas()` and `ffmpeg()`.
-- If you added audio, `makeProject({audio})` path exists and `Include audio` is ON in exporter.
+Read individual rule files for detailed explanations and code examples:
 
-## Sources
+### Core Animation Concepts
+- **[references/generators.md](references/generators.md)** - Generator functions for describing animations
+- **[references/signals.md](references/signals.md)** - Reactive signals for dynamic properties and dependencies
+- **[references/animations.md](references/animations.md)** - Tweening properties and creating smooth animations
 
-Distilled from Motion Canvas `v3.17` monorepo: `packages/docs/docs/{getting-started,components,advanced,migration}`, `packages/core/src/{app,flow,signals,tweening,scenes,threading,transitions}`, `packages/2d/src/lib/{components,scenes}`, `packages/{template,create/template-2d-ts,examples,vite-plugin,ffmpeg}`. See each reference header for exact source paths.
+For additional topics like scenes, shapes, text rendering, audio synchronization, and advanced features, refer to the comprehensive [Motion Canvas official documentation](https://motioncanvas.io/docs).
+
+## Complete Working Example
+
+This is a complete, tested project structure that works out of the box:
+
+```
+my-motion-canvas-project/
+├── package.json
+│   {
+│     "name": "my-motion-canvas-project",
+│     "type": "module",
+│     "scripts": {
+│       "dev": "vite",
+│       "build": "vite build"
+│     },
+│     "devDependencies": {
+│       "@motion-canvas/core": "^3.0.0",
+│       "@motion-canvas/2d": "^3.0.0",
+│       "@motion-canvas/vite-plugin": "^3.0.0",
+│       "@motion-canvas/ui": "^3.0.0",
+│       "vite": "^5.0.0",
+│       "typescript": "^5.0.0"
+│     }
+│   }
+│
+├── vite.config.js (with createRequire workaround)
+├── tsconfig.json (with esModuleInterop)
+├── index.html
+└── src/
+    ├── project.ts (makeProject with scenes array)
+    └── scenes/
+        └── example.tsx (makeScene2D with animations)
+```
+
+## Best Practices
+
+1. **Always use the createRequire workaround** - Don't try standard ESM imports for the Vite plugin
+2. **Use vite.config.js not .ts** - Avoids additional compilation complexity
+3. **Include all dependencies** - Don't forget `@motion-canvas/ui`
+4. **Use generator functions** - All scene animations should use `function*` and `yield*` syntax
+5. **Leverage signals** - Create reactive dependencies between properties
+6. **Think in durations** - Specify animation duration in seconds as the second parameter
+7. **Use refs for control** - Create references to nodes for precise animation control
+8. **Preview frequently** - Take advantage of the real-time editor for instant feedback
+9. **Organize scenes** - Break complex animations into multiple scenes
+10. **Type everything** - Use TypeScript for better IDE support and fewer errors
+
+## Common Pitfalls to Avoid
+
+1. ❌ Forgetting `"type": "module"` in package.json
+2. ❌ Using standard import for `@motion-canvas/vite-plugin`
+3. ❌ Not installing `@motion-canvas/ui`
+4. ❌ Missing `esModuleInterop` in tsconfig.json
+5. ❌ Using `vite.config.ts` instead of `vite.config.js`
+6. ❌ Forgetting `?scene` suffix in scene imports
+
+## Resources
+
+- **Documentation**: https://motioncanvas.io/docs
+- **Repository**: https://github.com/motion-canvas/motion-canvas
+- **Examples**: https://motioncanvas.io/docs/quickstart
+- **Community**: Discord and GitHub Discussions
+- **License**: MIT
