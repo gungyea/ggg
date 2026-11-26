@@ -68,8 +68,10 @@ const LIMITS = {
 // joint stiffness (relative)
 const STIFF = {
   spine: 1.4, chest: 1.2, neck: 0.9, head: 0.7, upperarm: 0.6, lowerarm: 0.45, hand: 0.25,
-  upperleg: 1.3, lowerleg: 1.2, foot: 0.6,
+  upperleg: 2, lowerleg: 2, foot: 0.6,
 };
+let TWIST_FREE = true; // cannon-es cone-twist misreads the rest twist of our bones; muscles (PD) hold twist instead
+export function setTwistFree(v) { TWIST_FREE = v; }
 const kind = (n) => n.replace(/\.(L|R)$/, '');
 const avgI = (b) => (b.inertia.x + b.inertia.y + b.inertia.z) / 3;
 
@@ -128,6 +130,7 @@ export class RagdollPhysics {
         linearDamping: 0.05, angularDamping: /arm|hand/.test(k) ? 0.6 : 0.2,
       });
       body.partName = name;
+      body.halfLen = Math.max(L / 2, 0.05 * s);
       body.restPos = center.clone();
       body.restQuat = q.clone();
       world.addBody(body);
@@ -152,12 +155,12 @@ export class RagdollPhysics {
       const axisA = A.quaternion.inverse().vmult(axisW);
       const [angle, twist] = LIMITS[kind(name)];
       const c = new CANNON.ConeTwistConstraint(A, B, {
-        pivotA, pivotB, axisA, axisB: new CANNON.Vec3(0, 1, 0), angle, twistAngle: twist, collideConnected: false,
+        pivotA, pivotB, axisA, axisB: new CANNON.Vec3(0, 1, 0), angle, twistAngle: TWIST_FREE ? Math.PI : twist, collideConnected: false,
       });
       world.addConstraint(c);
       // relaxed standing pose: the model is built in an A-pose with wide legs;
       // muscles aim for arms down and feet a bit closer together
-      const relax = { 'upperleg.L': -0.045, 'upperleg.R': 0.045 }[name] || 0;
+      const relax = 0; // the model is already built in a relaxed standing pose
       const R = new CANNON.Quaternion().setFromAxisAngle(new CANNON.Vec3(0, 0, 1), relax);
       this.joints.push({
         A, B, c, stiff: STIFF[kind(name)] || 1,
@@ -222,13 +225,35 @@ export class RagdollPhysics {
       b.force.y += b.mass * g * 0.95 * ctl;
     }
     const head = this.parts.head;
-    const kx = M * 10 * ctl, dx = M * 9 * ctl;
-    for (const [b, share] of [[chest, 0.45], [hips, 0.45], [head, 0.1]]) {
+    // Weight support: a bit less than the full weight, the rest stays on the
+    // legs so the feet stay planted and the knees don't splay.
+    for (const [b, share] of [[chest, 0.36], [hips, 0.36], [head, 0.08]]) {
       const dy = (b.restPos.y - b.position.y) / this.s;
       b.force.y += share * M * (g * ctl * Math.max(0, Math.min(2.5, 1 + 8 * dy)) - b.velocity.y * 12 * ctl);
-      // horizontal springs: head over chest over hips over home -> stands straight, drifts back
-      b.force.x += (-(b.position.x - this.home.x - b.restPos.x) * kx - b.velocity.x * dx) * share;
-      b.force.z += (-(b.position.z - this.home.z - b.restPos.z) * kx - b.velocity.z * dx) * share;
+    }
+    // Posture: two soft "strings" per torso part (top and bottom point) pull it
+    // back to its standing place, which holds both position and tilt stably.
+    const tgt = new CANNON.Vec3(), wp = new CANNON.Vec3(), rel = new CANNON.Vec3(), vp = new CANNON.Vec3(), f = new CANNON.Vec3();
+    const P = this.parts;
+    for (const [b, gain] of [[hips, 260], [P.spine, 260], [chest, 260],
+      [P['upperleg.L'], 150], [P['upperleg.R'], 150], [P['lowerleg.L'], 150], [P['lowerleg.R'], 150]]) {
+      const k = b.mass * gain * ctl, c = b.mass * 2 * Math.sqrt(gain) * 0.8 * ctl;
+      for (const sg of [1, -1]) {
+        const lp = new CANNON.Vec3(0, sg * b.halfLen, 0);
+        b.restQuat.vmult(lp, tgt); tgt.vadd(b.restPos, tgt); tgt.x += this.home.x; tgt.z += this.home.z;
+        b.quaternion.vmult(lp, rel); rel.vadd(b.position, wp);
+        b.angularVelocity.cross(rel, vp); vp.vadd(b.velocity, vp);
+        // x/z: full spring. y: only the tilt part (top vs bottom), height is the weight support's job
+        const ty = (tgt.y - b.restPos.y) - rel.y;
+        f.set((tgt.x - wp.x) * k - vp.x * c, ty * k - (vp.y - b.velocity.y) * c, (tgt.z - wp.z) * k - vp.z * c);
+        b.applyForce(f, rel);
+      }
+    }
+    // head over the shoulders
+    {
+      const k = head.mass * 120 * ctl, c = head.mass * 2 * 11 * 0.8 * ctl;
+      head.force.x += (head.restPos.x + this.home.x - head.position.x) * k - head.velocity.x * c;
+      head.force.z += (head.restPos.z + this.home.z - head.position.z) * k - head.velocity.z * c;
     }
     // face the camera (+z): gentle yaw torque
     for (const b of [hips, chest]) {

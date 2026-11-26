@@ -121,6 +121,8 @@ def solve_pose(P0):
         L = np.eye(3)
         if b.startswith("shoulder01"):
             L = rot([0, 0, 1], -sgn * math.radians(6))
+        elif b.startswith("upperleg01"):
+            L = rot([0, 0, 1], -sgn * math.radians(4))   # narrower, natural stance
         elif b.startswith("upperarm01"):
             L = rot([0, 0, 1], -sgn * math.radians(25))
         elif b.startswith("lowerarm01"):
