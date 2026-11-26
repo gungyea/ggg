@@ -49,6 +49,23 @@ const FACE = process.env.FACE;
   }
   await page.waitForTimeout(2500);
   await page.screenshot({ path: OUT + '/5-after.png' });
+  // regression: after standing back up, thrown food must still reach the body
+  await page.click('#btn-reset');
+  await page.waitForTimeout(1500);
+  await page.click('#toolbar button[data-id="tomato"]');
+  let landed = 0;
+  for (const part of ['chest', 'head', 'hips']) {
+    const before = await page.evaluate(() => window.__game.hits);
+    const p = await aim(part);
+    await page.mouse.click(p.x, p.y);
+    await page.waitForTimeout(100);
+    await page.waitForFunction(() => window.__game.tools.projectiles.length === 0, null, { timeout: 5000 });
+    const after = await page.evaluate(() => window.__game.hits);
+    if (after > before) landed++;
+  }
+  console.log('THROW_AFTER_RESET', landed + '/3');
+  if (landed < 2) errors.push('tomato did not reach the body after reset');
+  await page.screenshot({ path: OUT + '/6-tomato-after-reset.png' });
   const state = await page.evaluate(() => ({ stress: window.__game.stress, hits: window.__game.hits, head: window.__game.character.rag.parts.head.position.y }));
   console.log('STATE', JSON.stringify(state));
   console.log('ERRORS', errors.length ? errors.join('\n') : 'none');

@@ -2,6 +2,7 @@
   "name": "stress-punch",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "description": "사진 한 장으로 만드는 3D 스트레스 해소 게임 (정적 웹사이트)",
   "scripts": {
     "serve": "python3 -m http.server 8765 --directory public",

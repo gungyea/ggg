@@ -72,6 +72,92 @@ keys = {
 skel = json.load(open(os.path.join(SRC, "default.mhskel")))
 J = {k: base[v].mean(axis=0) for k, v in skel["joints"].items()}
 B = skel["bones"]
+wdata = json.load(open(os.path.join(SRC, "default_weights.mhw")))["weights"]
+
+# ---------------------------------------------------------------- relaxed pose
+# MakeHuman's rest pose has the arms out at ~50 deg with the forearms pointing
+# forward. Re-pose with the full 163-bone CC0 rig (good shoulder weights) so the
+# arms hang naturally, then bake that into the mesh, shape keys and joints.
+def rot(axis, ang):
+    axis = np.asarray(axis, float); axis /= np.linalg.norm(axis)
+    x, y, z = axis; c, s = math.cos(ang), math.sin(ang); C = 1 - c
+    return np.array([[c + x*x*C, x*y*C - z*s, x*z*C + y*s], [y*x*C + z*s, c + y*y*C, y*z*C - x*s], [z*x*C - y*s, z*y*C + x*s, c + z*z*C]])
+
+
+def align(a, b):
+    a = a / np.linalg.norm(a); b = b / np.linalg.norm(b)
+    ax = np.cross(a, b)
+    if np.linalg.norm(ax) < 1e-8:
+        return np.eye(3)
+    return rot(ax, math.acos(np.clip(a @ b, -1, 1)))
+
+
+def bone_order():
+    out, seen = [], set()
+    def visit(b):
+        if b in seen: return
+        p = B[b]["parent"]
+        if p: visit(p)
+        seen.add(b); out.append(b)
+    for b in B: visit(b)
+    return out
+
+
+ORDER = bone_order()
+
+
+def solve_pose(P0):
+    """global (R, t) per bone for the relaxed pose, computed on joint positions P0"""
+    Jp = {k: P0[v].mean(axis=0) for k, v in skel["joints"].items()}
+    G = {}
+    def apply(b, p):
+        R, t = G[b]; return R @ p + t
+    for b in ORDER:
+        par = B[b]["parent"]
+        Rp, tp = G[par] if par else (np.eye(3), np.zeros(3))
+        h = Jp[B[b]["head"]]
+        hp = Rp @ h + tp                       # where this bone's head is now
+        sgn = 1 if b.endswith(".L") else -1
+        L = np.eye(3)
+        if b.startswith("shoulder01"):
+            L = rot([0, 0, 1], -sgn * math.radians(6))
+        elif b.startswith("upperarm01"):
+            L = rot([0, 0, 1], -sgn * math.radians(25))
+        elif b.startswith("lowerarm01"):
+            # forearm: hang down along the upper arm, slight bend forward
+            ua = Rp @ (Jp[B[b]["head"]] - Jp[B["upperarm01" + b[-2:]]["head"]])
+            ua /= np.linalg.norm(ua)
+            cur = Rp @ (Jp[B[b]["tail"]] - Jp[B[b]["head"]])
+            target = ua * math.cos(math.radians(14)) + np.array([0, 0, 1.0]) * math.sin(math.radians(14))
+            L = align(cur, target)
+        elif b.startswith("wrist"):
+            L = rot([0, 1, 0], sgn * math.radians(-20))  # palms towards the thighs
+        R = L @ Rp
+        G[b] = (R, hp - R @ h)
+    return G
+
+
+def skin_pose(P0, G):
+    out = np.zeros_like(P0)
+    wsum = np.zeros(len(P0))
+    for b, lst in wdata.items():
+        R, t = G[b]
+        idx = np.array([i for i, _ in lst]); w = np.array([x for _, x in lst])
+        out[idx] += w[:, None] * (P0[idx] @ R.T + t)
+        wsum[idx] += w
+    miss = wsum < 1e-6
+    out[~miss] /= wsum[~miss, None]
+    out[miss] = P0[miss]
+    return out
+
+
+POSE = solve_pose(base)
+for k in keys:
+    keys[k] = skin_pose(base + keys[k], POSE)
+base = skin_pose(base, POSE)
+for k in keys:
+    keys[k] = keys[k] - base
+J = {k: base[v].mean(axis=0) for k, v in skel["joints"].items()}
 
 
 def jh(b):
@@ -122,7 +208,6 @@ def resolve(b):
     return {"hips": 1.0}
 
 
-wdata = json.load(open(os.path.join(SRC, "default_weights.mhw")))["weights"]
 W = {}  # vertex -> {simple: w}
 for b, lst in wdata.items():
     for sb, f in resolve(b).items():
@@ -363,8 +448,9 @@ if PREVIEW:
     sc.render.resolution_x, sc.render.resolution_y = 640, 900
     cam = bpy.data.objects.new("cam", bpy.data.cameras.new("cam"))
     sc.collection.objects.link(cam)
-    cam.location = (0.9, -3.4, 1.1)
-    cam.rotation_euler = (math.radians(88), 0, math.radians(15))
+    front = os.environ.get("PREVIEW_FRONT")
+    cam.location = (0, -3.5, 0.9) if front else (0.9, -3.4, 1.1)
+    cam.rotation_euler = (math.radians(90), 0, 0) if front else (math.radians(88), 0, math.radians(15))
     cam.data.lens = 50
     sc.camera = cam
     for loc, e in [((2, -2, 3), 900), ((-3, -1, 2), 400), ((0, 3, 3), 500)]:

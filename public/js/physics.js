@@ -25,7 +25,10 @@ export function createWorld() {
   env(new CANNON.Plane(), new CANNON.Vec3(0, 0, 0), q(1, 0, 0, -Math.PI / 2)); // floor
   env(new CANNON.Plane(), new CANNON.Vec3(0, ROOM.height, 0), q(1, 0, 0, Math.PI / 2)); // ceiling
   env(new CANNON.Plane(), new CANNON.Vec3(0, 0, ROOM.back), null); // back wall (normal +z)
-  env(new CANNON.Plane(), new CANNON.Vec3(0, 0, ROOM.front), q(0, 1, 0, Math.PI)); // invisible front
+  // invisible front wall keeps the body in the room. Only the body collides with it:
+  // the camera (and every thrown object's start point) sits outside it.
+  const front = env(new CANNON.Plane(), new CANNON.Vec3(0, 0, ROOM.front), q(0, 1, 0, Math.PI));
+  front.collisionFilterMask = G_BODY;
   env(new CANNON.Plane(), new CANNON.Vec3(-ROOM.halfW, 0, 0), q(0, 1, 0, Math.PI / 2));
   env(new CANNON.Plane(), new CANNON.Vec3(ROOM.halfW, 0, 0), q(0, 1, 0, -Math.PI / 2));
   return world;
@@ -122,7 +125,7 @@ export class RagdollPhysics {
       const body = new CANNON.Body({
         mass, shape, position: center, quaternion: q,
         collisionFilterGroup: G_BODY, collisionFilterMask: G_ENV | G_PROJ,
-        linearDamping: 0.05, angularDamping: 0.2,
+        linearDamping: 0.05, angularDamping: /arm|hand/.test(k) ? 0.6 : 0.2,
       });
       body.partName = name;
       body.restPos = center.clone();
@@ -154,7 +157,7 @@ export class RagdollPhysics {
       world.addConstraint(c);
       // relaxed standing pose: the model is built in an A-pose with wide legs;
       // muscles aim for arms down and feet a bit closer together
-      const relax = { 'upperarm.L': -0.55, 'upperarm.R': 0.55, 'upperleg.L': -0.045, 'upperleg.R': 0.045 }[name] || 0;
+      const relax = { 'upperleg.L': -0.045, 'upperleg.R': 0.045 }[name] || 0;
       const R = new CANNON.Quaternion().setFromAxisAngle(new CANNON.Vec3(0, 0, 1), relax);
       this.joints.push({
         A, B, c, stiff: STIFF[kind(name)] || 1,
@@ -213,6 +216,11 @@ export class RagdollPhysics {
     // An invisible "puppet string" on the chest holds the body up; the body
     // hangs below it, which keeps it upright without stiff torques.
     // Gets weaker when knocked, so the body crumples and then rises again.
+    // arms are held by the shoulders while standing (otherwise gravity swings them into the torso)
+    for (const n of ['upperarm.L', 'lowerarm.L', 'hand.L', 'upperarm.R', 'lowerarm.R', 'hand.R']) {
+      const b = this.parts[n];
+      b.force.y += b.mass * g * 0.95 * ctl;
+    }
     const head = this.parts.head;
     const kx = M * 10 * ctl, dx = M * 9 * ctl;
     for (const [b, share] of [[chest, 0.45], [hips, 0.45], [head, 0.1]]) {
