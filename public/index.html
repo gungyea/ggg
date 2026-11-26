@@ -30,7 +30,7 @@
 <section class="screen" id="screen-photo">
   <div class="panel photo-panel" id="photo-step">
     <h2>1. 사진 넣기</h2>
-    <p class="sub">정면 사진이 가장 잘 나와요. 사진을 끌어서 <b>노란 눈 표시</b>와 <b>턱 선</b>에 맞춰 주세요.</p>
+    <p class="sub">정면을 보는 밝은 사진이 가장 잘 나와요. 얼굴은 자동으로 찾아서 맞춰요.</p>
     <div class="crop-wrap">
       <canvas id="crop"></canvas>
       <div class="crop-empty">
@@ -45,7 +45,8 @@
       <button class="btn icon" id="rot-r" title="오른쪽 회전">⟳</button>
       <label class="btn small">다른 사진<input type="file" id="file2" accept="image/*" hidden></label>
     </div>
-    <p class="hint">두 손가락으로 확대·회전, 한 손가락으로 이동</p>
+    <p class="fit-status" id="fit-status"></p>
+    <p class="hint">자동으로 안 맞으면 끌어서 직접 맞출 수 있어요 <button class="link" id="auto-fit" hidden>자동 맞춤으로 되돌리기</button></p>
     <div class="row">
       <button class="btn ghost" id="photo-skip">사진 없이 하기</button>
       <button class="btn primary" id="photo-next">다음 →</button>

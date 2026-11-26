@@ -52,3 +52,16 @@ CLOUDFLARE_API_TOKEN=... CLOUDFLARE_ACCOUNT_ID=... npm run deploy
 
 - 사람 메시·뼈대·체형 타깃: [MakeHuman](http://www.makehumancommunity.org) 에셋, CC0 1.0
 - three.js (MIT), cannon-es (MIT)
+
+## 얼굴 자동 맞춤
+
+`public/vendor/mediapipe/`의 MediaPipe Face Landmarker(Apache 2.0)가 브라우저 안에서 사진의 얼굴 점 478개를 찾습니다.
+같은 점들을 3D 머리 정면 렌더에서도 미리 찾아 `models/<성별>.json`의 `mesh`에 저장해 두었고,
+게임은 사진을 삼각형 단위로 변형해 두 점 집합을 일치시킵니다.
+
+모델을 다시 만든 뒤에는 기준점도 다시 만들어야 합니다.
+
+```
+blender -b -P tools/blender/render_face_template.py -- public/models/male.glb /tmp/tmpl-male.png
+python3 tools/face_template.py /tmp/tmpl-male.png public/models/male.json face_landmarker.task
+```

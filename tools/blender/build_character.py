@@ -252,6 +252,7 @@ FZ0, FZ1 = head_bone_z - 0.10, hz1 + 0.005
 FX0, FX1 = hx0 - 0.005, hx1 + 0.005
 print("face box", FX0, FX1, FZ0, FZ1)
 WAIST_Z = (conv(jh("spine04"))[2] - foot_z) + 0.01
+NECKLINE_Z = (conv(jh("neck01"))[2] - foot_z) - 0.035
 
 for poly, i in zip(mesh.polygons, sel):
     c = poly.center
@@ -276,7 +277,9 @@ for poly, i in zip(mesh.polygons, sel):
         poly.material_index = 4
     elif not dom.startswith(("hand", "lowerarm", "upperarm", "head", "neck")):
         # one clean horizontal waist line; pants end just above the ankle
-        if c.z > WAIST_Z:
+        if c.z > NECKLINE_Z and abs(c.x) < 0.11:
+            poly.material_index = 0   # crew neck: neck stays bare
+        elif c.z > WAIST_Z:
             poly.material_index = 2
         else:
             poly.material_index = 3 if c.z > 0.11 else 0

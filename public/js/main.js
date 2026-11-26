@@ -2,13 +2,13 @@ import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { createWorld, ROOM, CANNON } from './physics.js';
 import { Character, OUTFITS } from './character.js';
-import { PhotoEditor, loadImageFile } from './photo.js';
+import { PhotoEditor, loadImageFile, preloadFaceDetector } from './photo.js';
 import { ToolController, TOOLS } from './tools.js';
 import { woodFloor, wallTexture, splatCanvas } from './textures.js';
 import { sfx, unlockAudio, setMuted } from './audio.js';
 
 const $ = (s) => document.querySelector(s);
-const LANDMARKS = {}; // per gender, loaded from model json
+const METAS = {}; // per gender, loaded from model json
 
 // ================================================================ renderer / scene
 const canvas = $('#scene');
@@ -271,13 +271,26 @@ function showResult() {
 // ================================================================ flow: photo
 let editor = null;
 async function loadMeta(g) {
-  if (!LANDMARKS[g]) LANDMARKS[g] = (await (await fetch(`models/${g}.json`)).json()).face;
-  return LANDMARKS[g];
+  if (!METAS[g]) METAS[g] = await (await fetch(`models/${g}.json`)).json();
+  return METAS[g];
 }
 
 async function initPhoto() {
-  const lm = await loadMeta(game.gender);
-  editor = new PhotoEditor($('#crop'), lm);
+  editor = new PhotoEditor($('#crop'), await loadMeta(game.gender));
+  const st = $('#fit-status');
+  editor.onstatus = (s) => {
+    const msg = {
+      detecting: ['⏳ 얼굴 찾는 중…', ''],
+      auto: ['✅ 얼굴을 자동으로 맞췄어요', 'ok'],
+      noface: ['얼굴을 못 찾았어요. 사진을 끌어서 노란 표시에 직접 맞춰 주세요.', 'warn'],
+      nodetector: ['자동 맞춤을 쓸 수 없어요. 직접 맞춰 주세요.', 'warn'],
+      manual: ['직접 맞추는 중', ''],
+    }[s];
+    st.textContent = msg[0];
+    st.className = 'fit-status ' + msg[1];
+    $('#auto-fit').hidden = !(s === 'manual' && editor.photoLm);
+  };
+  $('#auto-fit').onclick = () => editor.enableAuto();
   const pick = async (file) => {
     if (!file) return;
     try {
@@ -350,7 +363,7 @@ function initCustomize() {
   document.querySelectorAll('#gender button').forEach((btn) => btn.addEventListener('click', async () => {
     if (game.gender === btn.dataset.g) return;
     game.gender = btn.dataset.g;
-    editor.setLandmarks(await loadMeta(game.gender));
+    editor.setMeta(await loadMeta(game.gender));
     await rebuildCharacter();
   }));
   const oc = $('#outfits');
@@ -515,7 +528,7 @@ function frame() {
 }
 
 // ================================================================ boot
-$('#start').onclick = () => { unlockAudio(); ui.show('screen-photo'); game.mode = 'photo'; };
+$('#start').onclick = () => { unlockAudio(); ui.show('screen-photo'); game.mode = 'photo'; preloadFaceDetector(); };
 await initPhoto();
 initCustomize();
 initPlay();

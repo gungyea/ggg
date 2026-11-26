@@ -153,3 +153,8 @@ input[type=range] { width: 100%; accent-color: var(--accent); height: 28px; touc
   .hud-btns { order: 1; margin-left: auto; }
   .hits { margin-top: 6px; }
 }
+
+.fit-status { text-align: center; font-size: 13px; font-weight: 700; margin: 10px 0 0; min-height: 18px; }
+.fit-status.ok { color: #5ee08c; }
+.fit-status.warn { color: var(--accent2); }
+.link { background: none; border: 0; color: var(--accent2); text-decoration: underline; font: inherit; cursor: pointer; padding: 0; }

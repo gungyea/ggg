@@ -79,8 +79,8 @@ export class Character {
     this.faceTex.flipY = false;
     this.faceTex.anisotropy = 8;
     const skinParams = {
-      roughness: 0.52, normalMap: skinN, normalScale: new THREE.Vector2(0.35, 0.35),
-      sheen: 0.35, sheenRoughness: 0.6, sheenColor: new THREE.Color('#ff9f8a'),
+      roughness: 0.55, normalMap: skinN, normalScale: new THREE.Vector2(0.25, 0.25),
+      sheen: 0.15, sheenRoughness: 0.7, sheenColor: new THREE.Color('#ff9f8a'),
       clearcoat: 0.04, clearcoatRoughness: 0.6,
     };
     this.mats = {
