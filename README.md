@@ -59,9 +59,13 @@ CLOUDFLARE_API_TOKEN=... CLOUDFLARE_ACCOUNT_ID=... npm run deploy
 같은 점들을 3D 머리 정면 렌더에서도 미리 찾아 `models/<성별>.json`의 `mesh`에 저장해 두었고,
 게임은 사진을 삼각형 단위로 변형해 두 점 집합을 일치시킵니다.
 
+게임용 모델은 사진의 이목구비와 겹치지 않도록 눈·입 주변 굴곡을 펴고 얼굴 굴곡을 줄인 버전입니다.
+기준점은 굴곡을 펴지 않은 모델(`FLAT_FACE=0`)에서 찾습니다(깊이만 바뀌므로 위치는 같음).
 모델을 다시 만든 뒤에는 기준점도 다시 만들어야 합니다.
 
 ```
-blender -b -P tools/blender/render_face_template.py -- public/models/male.glb /tmp/tmpl-male.png
+blender -b -P tools/blender/build_character.py -- male public/models/male.glb
+FLAT_FACE=0 blender -b -P tools/blender/build_character.py -- male /tmp/tmpl-male.glb
+blender -b -P tools/blender/render_face_template.py -- /tmp/tmpl-male.glb /tmp/tmpl-male.png
 python3 tools/face_template.py /tmp/tmpl-male.png public/models/male.json face_landmarker.task
 ```

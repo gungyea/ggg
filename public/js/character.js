@@ -6,6 +6,7 @@ import { RagdollPhysics } from './physics.js';
 
 const loader = new GLTFLoader();
 const cache = {};
+const FLAT_LIGHT = 0.3; // share of skin brightness that ignores lighting
 const sanitize = (n) => THREE.PropertyBinding.sanitizeNodeName(n);
 
 export const OUTFITS = [
@@ -84,8 +85,14 @@ export class Character {
       clearcoat: 0.04, clearcoatRoughness: 0.6,
     };
     this.mats = {
-      skin: new THREE.MeshPhysicalMaterial({ ...skinParams, color: new THREE.Color(skinColor) }),
-      face: new THREE.MeshPhysicalMaterial({ ...skinParams, map: this.faceTex, normalScale: new THREE.Vector2(0.12, 0.12) }),
+      // Part of the skin's brightness is self-lit (emissive) so the 3D model's own
+      // sculpted features cast weaker shading over the photo's features.
+      skin: new THREE.MeshPhysicalMaterial({ ...skinParams, emissiveIntensity: FLAT_LIGHT }),
+      face: new THREE.MeshPhysicalMaterial({
+        ...skinParams, map: this.faceTex, normalScale: new THREE.Vector2(0.12, 0.12),
+        color: new THREE.Color(1 - FLAT_LIGHT, 1 - FLAT_LIGHT, 1 - FLAT_LIGHT),
+        emissive: new THREE.Color(1, 1, 1), emissiveMap: this.faceTex, emissiveIntensity: FLAT_LIGHT,
+      }),
       shirt: new THREE.MeshPhysicalMaterial({ roughness: 0.92, normalMap: fabricNormal('knit'), normalScale: new THREE.Vector2(0.6, 0.6), sheen: 0.6, sheenRoughness: 0.8 }),
       pants: new THREE.MeshPhysicalMaterial({ roughness: 0.9, normalMap: fabricNormal('denim'), normalScale: new THREE.Vector2(0.7, 0.7), sheen: 0.4, sheenRoughness: 0.8 }),
       shoes: new THREE.MeshPhysicalMaterial({ roughness: 0.45, clearcoat: 0.3 }),
@@ -94,6 +101,7 @@ export class Character {
       const n = m.material.name;
       if (this.mats[n]) m.material = this.mats[n];
     }
+    this.setSkinColor(skinColor);
     this.morphMeshes = this.meshes.filter((m) => m.morphTargetDictionary);
     // own copy of the geometry (clones share it) so the face can be reshaped per photo
     for (const m of this.meshes) {
@@ -107,7 +115,11 @@ export class Character {
     this.decals = [];
   }
 
-  setSkinColor(c) { this.mats.skin.color.set(c); }
+  setSkinColor(c) {
+    const col = new THREE.Color(c);
+    this.mats.skin.emissive.copy(col);
+    this.mats.skin.color.copy(col).multiplyScalar(1 - FLAT_LIGHT);
+  }
 
   /**
    * Reshape the 3D face to the person's proportions.

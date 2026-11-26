@@ -398,6 +398,92 @@ mesh.vertices.foreach_set("co", np.array([kb.co for kb in obj.data.shape_keys.ke
 eye_idx = sorted({remap[v] for i in sel if groups[i] != "body" for v in faces[i][0]})
 eye_z = float(P[eye_idx, 2].mean())
 eye_x = float(np.abs(P[eye_idx, 0]).mean())
+
+# ---------------------------------------------------------------- photo face
+# The photo supplies eyes, brows, nose and lips. If the model keeps its own
+# sculpted features they show through as a second face (double eyes, two
+# noses). So: hide the eyeballs, close the lid/mouth openings and flatten the
+# face's depth relief. Only depth (Blender y) changes, so the front-projection
+# landmarks used for the photo warp stay valid.
+FLAT = os.environ.get("FLAT_FACE", "1") != "0"
+if FLAT:
+    import bmesh
+    head_y = float(np.median(P[[i for i in range(len(P)) if P[i, 2] > eye_z - 0.02], 1]))
+    eye_set = set(eye_idx)
+    kb_all = obj.data.shape_keys.key_blocks
+    # 1) eyeballs back into the skull
+    for kb in kb_all:
+        for v in eye_idx:
+            kb.data[v].co.y += 0.02
+    # 2) close openings in the face (eyelids, lips)
+    bm = bmesh.new()
+    bm.from_mesh(mesh)
+    bm.verts.ensure_lookup_table()
+    def in_face(v):
+        co = v.co
+        return co.y < head_y and eye_z - 0.13 < co.z < eye_z + 0.04 and abs(co.x) < 0.075
+    holes = [e for e in bm.edges if e.is_boundary and all(in_face(v) and v.index not in eye_set for v in e.verts)]
+    nf0 = len(bm.faces)
+    res = bmesh.ops.holes_fill(bm, edges=holes, sides=64)
+    new_faces = res["faces"]
+    bmesh.ops.triangulate(bm, faces=new_faces)
+    print("filled holes:", len(new_faces), "new faces from", len(holes), "boundary edges")
+    # 3) flatten depth relief inside the face (smooth y only, keep 30% of the detail)
+    face_vs = [v for v in bm.verts if v.co.y < head_y + 0.01 and eye_z - 0.16 < v.co.z < eye_z + 0.07 and abs(v.co.x) < 0.085 and v.index not in eye_set]
+    def weight(co):
+        # 1 in the middle of the face, fading to 0 at the region border
+        fx = 1 - min(1, max(0, (abs(co.x) - 0.045) / 0.04))
+        fz = 1 - min(1, max(0, (co.z - (eye_z + 0.03)) / 0.04)) - min(1, max(0, ((eye_z - 0.12) - co.z) / 0.04))
+        return max(0.0, min(1.0, fx)) * max(0.0, min(1.0, fz))
+    ys = {v.index: v.co.y for v in bm.verts}
+    nbr = {v.index: [e.other_vert(v).index for e in v.link_edges] for v in face_vs}
+    for _ in range(150):
+        nxt = dict(ys)
+        for v in face_vs:
+            ns = nbr[v.index]
+            if ns:
+                nxt[v.index] = 0.5 * ys[v.index] + 0.5 * sum(ys[n] for n in ns) / len(ns)
+        ys = nxt
+    mouth_z = eye_z - 0.069
+    def keep(co):
+        # how much of the sculpted relief survives: little overall, none at eyes / lips
+        # keep the nose/cheek/jaw shape (profile), flatten eyes and lips where
+        # the photo's own eyes and lips would otherwise double up
+        K = 0.6
+        k = K
+        for ex in (-eye_x, eye_x):
+            d = math.hypot((co.x - ex) * 0.8, co.z - eye_z)
+            k = min(k, 0.3 + (K - 0.3) * min(1.0, max(0.0, (d - 0.014) / 0.016)))
+        dm = max(abs(co.x) - 0.026, 0) / 0.014 + abs(co.z - mouth_z) / 0.016
+        k = min(k, 0.3 + (K - 0.3) * min(1.0, dm))
+        return k
+    dy = {}
+    for v in face_vs:
+        target = ys[v.index] + keep(v.co) * (v.co.y - ys[v.index])
+        dy[v.index] = weight(v.co) * (target - v.co.y)
+    # apply to every shape-key layer so fat/thin/muscle still work
+    for layer in [None] + list(bm.verts.layers.shape.values()):
+        for v in face_vs:
+            if layer is None:
+                v.co.y += dy[v.index]
+            else:
+                v[layer].y += dy[v.index]
+    bm.faces.ensure_lookup_table()
+    for f in new_faces:
+        if f.is_valid:
+            f.material_index = 1
+            f.smooth = True
+    uv_layer = bm.loops.layers.uv.active
+    for f in new_faces:
+        if not f.is_valid:
+            continue
+        for lp in f.loops:
+            co = lp.vert.co
+            lp[uv_layer].uv = (0.5 * (co.x - FX0) / (FX1 - FX0), (co.z - FZ0) / (FZ1 - FZ0))
+    bm.to_mesh(mesh)
+    bm.free()
+    mesh.update()
+    print("flattened", len(face_vs), "face verts")
 mid = [i for i in range(len(P)) if abs(P[i, 0]) < 0.006 and eye_z - 0.14 < P[i, 2] < eye_z - 0.08]
 chin_z = float(P[min(mid, key=lambda i: P[i, 1]), 2]) if mid else eye_z - 0.115
 mouth = [i for i in range(len(P)) if abs(P[i, 0]) < 0.006 and eye_z - 0.08 < P[i, 2] < eye_z - 0.04]
