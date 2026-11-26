@@ -1,13 +1,13 @@
 {
-  "name": "rich-website",
+  "name": "stress-punch",
   "version": "1.0.0",
-  "description": "Luxury wealth showcase website",
-  "main": "server.js",
+  "private": true,
+  "description": "사진 한 장으로 만드는 3D 스트레스 해소 게임 (정적 웹사이트)",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js"
-  },
-  "dependencies": {
-    "express": "^4.18.2"
+    "serve": "python3 -m http.server 8765 --directory public",
+    "test:physics": "node tools/test/physics-sim.mjs male && node tools/test/physics-sim.mjs female",
+    "test:e2e": "node tools/test/e2e.cjs",
+    "build:models": "for g in male female; do blender -b -P tools/blender/build_character.py -- $g public/models/$g.glb; done",
+    "deploy": "npx wrangler@3 pages deploy public --project-name stress-punch --branch main"
   }
 }

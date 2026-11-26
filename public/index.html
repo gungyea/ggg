@@ -1,258 +1,138 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BlackCard — 프리미엄 쇼핑</title>
-  <link rel="stylesheet" href="style.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-        crossorigin="" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-          crossorigin="" defer></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#16130f">
+<title>스트레스 펀치</title>
+<meta name="description" content="사진 한 장으로 만드는 3D 스트레스 해소 게임">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥊</text></svg>">
+<link rel="stylesheet" href="css/style.css">
+<script type="importmap">
+{ "imports": { "three": "./vendor/three/three.module.js", "three/addons/": "./vendor/three/addons/" } }
+</script>
 </head>
-<body>
+<body data-screen="screen-title">
+<canvas id="scene"></canvas>
 
-<!-- HEADER -->
-<header class="header">
-  <div class="header-inner">
-    <div class="logo">
-      <span class="logo-icon">◆</span>
-      <span class="logo-text">BlackCard</span>
-      <span class="logo-badge">PREMIUM</span>
-    </div>
-    <div class="search-bar">
-      <input type="text" id="searchInput" placeholder="프리미엄 상품 검색..." />
-      <button onclick="searchProducts()">🔍</button>
-    </div>
-    <div class="header-right">
-      <div class="card-badge" onclick="showCardModal()">
-        <span class="card-chip">💳</span>
-        <div>
-          <div class="card-label">MY BLACK CARD</div>
-          <div class="card-limit">한도없음</div>
-        </div>
-      </div>
-      <button class="orders-btn" onclick="showOrderHistory()">📋 내 주문</button>
-      <button class="cart-btn" onclick="toggleCart()">
-        🛒 <span id="cartCount">0</span>
-      </button>
-    </div>
+<!-- ============ title ============ -->
+<section class="screen active" id="screen-title">
+  <div class="title-card">
+    <div class="logo">🥊</div>
+    <h1>스트레스 펀치</h1>
+    <p>사진 한 장이면 끝. 얼굴을 3D 몸에 붙여서<br>마음껏 때리고 기분 풀기.</p>
+    <button class="btn primary big" id="start">시작하기</button>
+    <p class="fine">사진은 이 기기 안에서만 처리되고 어디에도 업로드되지 않아요.</p>
   </div>
-  <!-- Category Nav -->
-  <nav class="category-nav">
-    <button class="cat-btn active" onclick="filterCategory('all', this)">전체</button>
-    <button class="cat-btn" onclick="filterCategory('electronics', this)">📱 전자제품</button>
-    <button class="cat-btn" onclick="filterCategory('fashion', this)">👜 패션/명품</button>
-    <button class="cat-btn" onclick="filterCategory('beauty', this)">💄 뷰티</button>
-    <button class="cat-btn" onclick="filterCategory('appliance', this)">🏠 가전/생활</button>
-    <button class="cat-btn" onclick="filterCategory('food', this)">🍷 식품/와인</button>
-    <button class="cat-btn" onclick="filterCategory('sports', this)">⛳ 스포츠</button>
-    <button class="cat-btn" onclick="filterCategory('furniture', this)">🛋️ 가구/인테리어</button>
-    <button class="cat-btn" onclick="filterCategory('car', this)">🚗 자동차</button>
-    <button class="cat-btn" onclick="filterCategory('travel', this)">✈️ 여행/호텔</button>
-    <button class="cat-btn" onclick="filterCategory('jewelry', this)">💎 주얼리</button>
-  </nav>
-</header>
+</section>
 
-<!-- HERO BANNER -->
-<section class="hero">
-  <div class="hero-content">
-    <p class="hero-sub">BlackCard 회원 전용</p>
-    <h1 class="hero-title">당신만을 위한<br/>프리미엄 쇼핑</h1>
-    <p class="hero-desc">한도없는 블랙카드로 전 세계 명품을 당일 배송받으세요</p>
-    <div class="hero-perks">
-      <span>✈️ 무료 특급배송</span>
-      <span>💎 전 상품 정품 보증</span>
-      <span>🔒 VIP 전용 혜택</span>
+<!-- ============ photo ============ -->
+<section class="screen" id="screen-photo">
+  <div class="panel photo-panel" id="photo-step">
+    <h2>1. 사진 넣기</h2>
+    <p class="sub">정면 사진이 가장 잘 나와요. 사진을 끌어서 <b>노란 눈 표시</b>와 <b>턱 선</b>에 맞춰 주세요.</p>
+    <div class="crop-wrap">
+      <canvas id="crop"></canvas>
+      <div class="crop-empty">
+        <label class="btn primary">🖼️ 앨범에서 고르기<input type="file" id="file" accept="image/*" hidden></label>
+        <label class="btn">📷 카메라로 찍기<input type="file" id="cam" accept="image/*" capture="user" hidden></label>
+      </div>
     </div>
-  </div>
-  <div class="hero-card-wrap">
-    <div class="credit-card" onclick="showCardModal()">
-      <div class="cc-top">
-        <span class="cc-brand">◆ BlackCard</span>
-        <span class="cc-type">INFINITE</span>
-      </div>
-      <div class="cc-chip">▣</div>
-      <div class="cc-number">•••• •••• •••• 8888</div>
-      <div class="cc-bottom">
-        <div>
-          <div class="cc-label">CARD HOLDER</div>
-          <div class="cc-value">VIP MEMBER</div>
-        </div>
-        <div>
-          <div class="cc-label">EXPIRES</div>
-          <div class="cc-value">12/30</div>
-        </div>
-        <div class="cc-network">MASTERCARD</div>
-      </div>
+    <div class="crop-tools">
+      <button class="btn icon" id="zoom-out" title="축소">－</button>
+      <button class="btn icon" id="zoom-in" title="확대">＋</button>
+      <button class="btn icon" id="rot-l" title="왼쪽 회전">⟲</button>
+      <button class="btn icon" id="rot-r" title="오른쪽 회전">⟳</button>
+      <label class="btn small">다른 사진<input type="file" id="file2" accept="image/*" hidden></label>
+    </div>
+    <p class="hint">두 손가락으로 확대·회전, 한 손가락으로 이동</p>
+    <div class="row">
+      <button class="btn ghost" id="photo-skip">사진 없이 하기</button>
+      <button class="btn primary" id="photo-next">다음 →</button>
     </div>
   </div>
 </section>
 
-<!-- FLASH DEALS -->
-<section class="flash-section">
-  <div class="section-header">
-    <h2>⚡ 오늘의 특가</h2>
-    <div class="countdown" id="countdown">23:59:59</div>
+<!-- ============ customize ============ -->
+<section class="screen" id="screen-custom">
+  <div class="panel custom-panel">
+    <h2>2. 몸 만들기</h2>
+    <div class="field">
+      <label>성별</label>
+      <div class="seg" id="gender"><button data-g="male" class="on">남자</button><button data-g="female">여자</button></div>
+    </div>
+    <div class="field">
+      <label>키 <output id="v-height"></output></label>
+      <input type="range" id="s-height" min="100" max="220" step="1">
+    </div>
+    <div class="field">
+      <label>몸무게 <output id="v-weight"></output></label>
+      <input type="range" id="s-weight" min="30" max="200" step="1">
+      <small id="v-bmi" class="muted"></small>
+    </div>
+    <div class="field">
+      <label>근육 <output id="v-muscle"></output></label>
+      <input type="range" id="s-muscle" min="0" max="100" step="1">
+    </div>
+    <div class="field">
+      <label>머리 크기 <output id="v-head"></output></label>
+      <input type="range" id="s-head" min="80" max="160" step="1">
+    </div>
+    <div class="field">
+      <label>머리카락</label>
+      <div class="chips" id="hair"></div>
+    </div>
+    <div class="field">
+      <label>옷</label>
+      <div class="outfits" id="outfits"></div>
+    </div>
+    <div class="row">
+      <button class="btn ghost" id="custom-back">← 사진</button>
+      <button class="btn primary" id="custom-go">때리러 가기 🥊</button>
+    </div>
   </div>
-  <div class="flash-strip" id="flashDeals"></div>
 </section>
 
-<!-- MAIN PRODUCTS -->
-<main class="main-content">
-  <div class="products-header">
-    <h2 id="categoryTitle">전체 상품</h2>
-    <div class="sort-options">
-      <select onchange="sortProducts(this.value)">
-        <option value="default">기본 정렬</option>
-        <option value="price-asc">가격 낮은 순</option>
-        <option value="price-desc">가격 높은 순</option>
-        <option value="rating">평점 높은 순</option>
-      </select>
+<!-- ============ play ============ -->
+<section class="screen" id="screen-play">
+  <div class="hud-top">
+    <div class="stress" id="stress"><span>스트레스</span><div class="bar"><i></i></div><b>100%</b></div>
+    <div class="hud-btns">
+      <button class="btn icon" id="btn-sound" title="소리">🔊</button>
+      <button class="btn icon" id="btn-clean" title="닦기">🧽</button>
+      <button class="btn icon" id="btn-reset" title="일으키기">🧍</button>
+      <button class="btn icon" id="btn-body" title="몸 바꾸기">⚙️</button>
     </div>
   </div>
-  <div class="product-grid" id="productGrid"></div>
-  <div class="load-more-wrap">
-    <div id="loadMoreInfo" class="load-more-info"></div>
-    <button id="loadMoreBtn" class="load-more-btn" onclick="loadMore()">더보기 ⬇</button>
-  </div>
-</main>
+  <div class="hits">타격 <b id="hits">0</b></div>
+  <div class="combo" id="combo"></div>
+  <div class="cam-btns"><button class="btn icon" id="cam-l">◀</button><button class="btn icon" id="cam-r">▶</button></div>
+  <div class="charge" id="charge"><i></i></div>
+  <div class="toolbar" id="toolbar"></div>
+</section>
 
-<!-- CART SIDEBAR -->
-<div class="cart-overlay" id="cartOverlay" onclick="toggleCart()"></div>
-<aside class="cart-sidebar" id="cartSidebar">
-  <div class="cart-header">
-    <h3>🛒 장바구니</h3>
-    <button onclick="toggleCart()">✕</button>
-  </div>
-  <div class="cart-items" id="cartItems"></div>
-  <div class="cart-footer">
-    <div class="cart-total">
-      <span>합계</span>
-      <span id="cartTotal">₩0</span>
-    </div>
-    <button class="checkout-btn" onclick="goToCheckout()">블랙카드로 결제</button>
-  </div>
-</aside>
+<div id="pops"></div>
+<div id="toast"></div>
+<div id="loading"><div class="spinner"></div>3D 몸 만드는 중…</div>
 
-<!-- CHECKOUT MODAL -->
-<div class="modal-overlay" id="checkoutOverlay">
-  <div class="modal checkout-modal">
-    <h2>💳 블랙카드 결제</h2>
-    <div class="checkout-card-preview">
-      <div class="mini-card">
-        <div>◆ BlackCard INFINITE</div>
-        <div class="mini-card-num">•••• •••• •••• 8888</div>
-      </div>
+<div id="result">
+  <div class="result-card">
+    <div class="big-emoji">😌</div>
+    <h2>스트레스 0%</h2>
+    <p>속이 좀 시원해졌나요?</p>
+    <div class="stats">
+      <div><b id="r-hits">0</b><span>타격</span></div>
+      <div><b id="r-combo">0</b><span>최대 콤보</span></div>
+      <div><b id="r-time">0</b><span>걸린 시간</span></div>
     </div>
-    <div class="form-group">
-      <label>배송지 주소</label>
-      <input type="text" id="addressInput" placeholder="서울시 강남구 테헤란로 123" />
-    </div>
-    <div class="form-group">
-      <label>받는 분</label>
-      <input type="text" id="recipientInput" placeholder="홍길동" />
-    </div>
-    <div class="form-group">
-      <label>연락처</label>
-      <input type="text" id="phoneInput" placeholder="010-1234-5678" />
-    </div>
-    <div class="checkout-summary" id="checkoutSummary"></div>
-    <div class="checkout-actions">
-      <button class="cancel-btn" onclick="closeCheckout()">취소</button>
-      <button class="confirm-btn" onclick="placeOrder()">결제 완료</button>
+    <div class="row">
+      <button class="btn ghost" id="r-new">다른 사람</button>
+      <button class="btn primary" id="r-again">계속 패기</button>
     </div>
   </div>
 </div>
 
-<!-- ORDER SUCCESS MODAL -->
-<div class="modal-overlay" id="successOverlay">
-  <div class="modal success-modal">
-    <div class="success-icon">🎉</div>
-    <h2>주문 완료!</h2>
-    <p>블랙카드 결제가 승인되었습니다</p>
-    <div class="order-id-box">주문번호: <strong id="orderIdDisplay"></strong></div>
-    <button class="track-btn" onclick="goToTracking()">배송 추적하기 🚚</button>
-    <button class="cancel-btn" onclick="closeSuccess()">계속 쇼핑</button>
-  </div>
-</div>
-
-<!-- PRODUCT DETAIL MODAL -->
-<div class="modal-overlay" id="productDetailOverlay">
-  <div class="modal product-detail-modal">
-    <button class="modal-close" onclick="closeProductDetail()">✕</button>
-    <div id="productDetailContent"></div>
-  </div>
-</div>
-
-<!-- BLACK CARD MODAL -->
-<div class="modal-overlay" id="cardModalOverlay">
-  <div class="modal card-modal">
-    <button class="modal-close" onclick="closeCardModal()">✕</button>
-    <div class="big-card">
-      <div class="bc-top">
-        <span class="bc-brand">◆ BlackCard</span>
-        <span class="bc-type">INFINITE</span>
-      </div>
-      <div class="bc-chip">▣</div>
-      <div class="bc-number">•••• •••• •••• 8888</div>
-      <div class="bc-bottom">
-        <div>
-          <div class="bc-label">CARD HOLDER</div>
-          <div class="bc-value">VIP MEMBER</div>
-        </div>
-        <div>
-          <div class="bc-label">EXPIRES</div>
-          <div class="bc-value">12/30</div>
-        </div>
-        <div class="bc-net">◎◎ MASTERCARD</div>
-      </div>
-    </div>
-    <div class="card-benefits">
-      <h3>블랙카드 혜택</h3>
-      <ul>
-        <li>💳 한도 <strong>한도없음</strong></li>
-        <li>✈️ 공항 라운지 무제한</li>
-        <li>🏨 특급호텔 연 5회 무료</li>
-        <li>🚗 발렛파킹 무제한</li>
-        <li>💎 전 상품 무료 특급배송</li>
-        <li>🎁 월 포인트 적립 3%</li>
-      </ul>
-    </div>
-  </div>
-</div>
-
-<!-- ORDER HISTORY PAGE (hidden) -->
-<div id="orderHistoryPage" class="tracking-page hidden">
-  <div class="tracking-inner">
-    <button class="back-btn" onclick="backFromHistory()">← 쇼핑 계속</button>
-    <h2>📋 내 주문 내역</h2>
-    <div id="orderHistoryList" style="margin-top:24px"></div>
-  </div>
-</div>
-
-<!-- TRACKING PAGE (hidden) -->
-<div id="trackingPage" class="tracking-page hidden">
-  <div class="tracking-inner">
-    <button class="back-btn" onclick="backToShop()">← 쇼핑 계속</button>
-    <h2>📦 배송 추적</h2>
-    <div class="tracking-order-info" id="trackingOrderInfo"></div>
-    <div class="tracking-map-wrap">
-      <div class="tracking-map-header">
-        <h3>🗺️ 실시간 위치</h3>
-        <span class="map-legend">📦 물류센터 &nbsp;·&nbsp; 🚚 배송차량 &nbsp;·&nbsp; 🏠 배송지</span>
-      </div>
-      <div id="trackingMap" class="tracking-map"></div>
-      <div class="tracking-map-info" id="trackingMapInfo"></div>
-    </div>
-    <div class="tracking-timeline" id="trackingTimeline"></div>
-    <div class="tracking-items" id="trackingItems"></div>
-    <button class="refresh-btn" onclick="refreshTracking()">🔄 새로고침</button>
-  </div>
-</div>
-
-<script src="app.js"></script>
+<noscript>이 게임은 자바스크립트가 필요해요.</noscript>
+<script type="module" src="js/main.js"></script>
 </body>
 </html>
