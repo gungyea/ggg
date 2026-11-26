@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { skinNormal, fabricNormal, splatCanvas } from './textures.js';
 import { RagdollPhysics } from './physics.js';
+import { V } from './version.js';
 
 const loader = new GLTFLoader();
 const cache = {};
@@ -21,8 +22,8 @@ export const OUTFITS = [
 async function loadModel(gender) {
   if (!cache[gender]) {
     cache[gender] = Promise.all([
-      loader.loadAsync(`models/${gender}.glb`),
-      fetch(`models/${gender}.json`).then((r) => r.json()),
+      loader.loadAsync(`models/${gender}.glb?v=${V}`),
+      fetch(`models/${gender}.json?v=${V}`).then((r) => r.json()),
     ]);
   }
   const [gltf, meta] = await cache[gender];
@@ -127,6 +128,7 @@ export class Character {
    * transform only), or null to restore the default face.
    */
   fitFaceShape(photoPts, strength = 0.85) {
+    if (!this.meta.mesh) return;
     const { pts, tri } = this.meta.mesh;
     const [x0, x1, z0, z1] = this.meta.faceBox;
     const W = x1 - x0, H = z1 - z0, MAXD = 0.018;

@@ -6,6 +6,7 @@ import { PhotoEditor, loadImageFile, preloadFaceDetector } from './photo.js';
 import { ToolController, TOOLS } from './tools.js';
 import { woodFloor, wallTexture, splatCanvas } from './textures.js';
 import { sfx, unlockAudio, setMuted } from './audio.js';
+import { V } from './version.js';
 
 const $ = (s) => document.querySelector(s);
 const METAS = {}; // per gender, loaded from model json
@@ -271,7 +272,7 @@ function showResult() {
 // ================================================================ flow: photo
 let editor = null;
 async function loadMeta(g) {
-  if (!METAS[g]) METAS[g] = await (await fetch(`models/${g}.json`)).json();
+  if (!METAS[g]) METAS[g] = await (await fetch(`models/${g}.json?v=${V}`)).json();
   return METAS[g];
 }
 
@@ -282,17 +283,19 @@ async function initPhoto() {
     const msg = {
       detecting: ['⏳ 얼굴 찾는 중…', ''],
       auto: ['✅ 얼굴을 자동으로 맞췄어요', 'ok'],
-      noface: ['얼굴을 못 찾았어요. 사진을 끌어서 노란 표시에 직접 맞춰 주세요.', 'warn'],
-      nodetector: ['자동 맞춤을 쓸 수 없어요. 직접 맞춰 주세요.', 'warn'],
-      manual: ['직접 맞추는 중', ''],
+      noface: ['얼굴을 자동으로 못 찾았어요. 노란 핀 4개를 눈·입·턱 위로 끌어 주세요.', 'warn'],
+      nodetector: ['자동 인식을 쓸 수 없어요. 노란 핀 4개를 눈·입·턱 위로 끌어 주세요.', 'warn'],
+      pins: ['노란 핀 4개를 사진 속 눈·입·턱에 맞춰 주세요. 얼굴형은 자동으로 맞춰져요.', ''],
     }[s];
     st.textContent = msg[0];
     st.className = 'fit-status ' + msg[1];
-    $('#auto-fit').hidden = !(s === 'manual' && editor.photoLm);
+    $('#auto-fit').hidden = !(editor.mode === 'pins' && editor.detected);
+    $('#pin-fit').hidden = editor.mode !== 'auto';
     // if matching finished after the character was built, refresh its face
     if (s === 'auto' && game.character && game.mode !== 'photo') refreshFace();
   };
   $('#auto-fit').onclick = () => editor.enableAuto();
+  $('#pin-fit').onclick = () => editor.startPins('pins');
   const pick = async (file) => {
     if (!file) return;
     try {
@@ -310,14 +313,27 @@ async function initPhoto() {
   $('#zoom-out').onclick = () => editor.zoom(1 / 1.06);
   $('#rot-l').onclick = () => editor.rotate(-0.03);
   $('#rot-r').onclick = () => editor.rotate(0.03);
+  let warnedManual = false;
   $('#photo-next').onclick = async () => {
     // never put an unaligned photo on the 3D face: wait for face matching first
     if (editor.detecting) {
-      $('#loading-text').textContent = '얼굴 맞추는 중…';
+      $('#loading-text').textContent = '얼굴 인식 준비 중… (처음 한 번은 오래 걸릴 수 있어요)';
+      $('#loading-cancel').hidden = false;
       $('#loading').classList.add('show');
-      await Promise.race([editor.detecting, new Promise((r) => setTimeout(r, 30000))]);
+      const cancelled = await Promise.race([
+        editor.detecting.then(() => false),
+        new Promise((r) => { $('#loading-cancel').onclick = () => r(true); }),
+      ]);
       $('#loading').classList.remove('show');
+      $('#loading-cancel').hidden = true;
+      if (cancelled) { editor.startPins('pins'); warnedManual = true; ui.toast('노란 핀 4개를 눈·입·턱에 맞춘 뒤 다음을 눌러 주세요'); return; }
     }
+    if (editor.img && editor.mode !== 'auto' && !warnedManual) {
+      warnedManual = true;
+      ui.toast('핀 4개를 눈·입·턱에 맞췄으면 다음을 한 번 더 눌러 주세요');
+      return;
+    }
+    warnedManual = false;
     toCustomize(false);
   };
   $('#photo-skip').onclick = () => { editor.img = null; toCustomize(true); };
@@ -558,5 +574,6 @@ document.body.classList.add('ready');
 frame();
 // warm the model cache while the player picks a photo
 import('./character.js');
-fetch('models/male.glb'); fetch('models/female.glb');
+fetch(`models/male.glb?v=${V}`); fetch(`models/female.glb?v=${V}`);
 window.__game = game; // debugging / automated checks
+window.__editor = editor;
