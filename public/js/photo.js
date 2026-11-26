@@ -62,6 +62,8 @@ export class PhotoEditor {
     this.t = { x: W / 2, y: H * ((lm.eyeY + lm.chinY) / 2 - 0.04), s: Math.max(faceH / (img.height * 0.55), (W * 0.9) / img.width), r: 0 };
     this.draw();
     this.onstatus('detecting');
+    let done;
+    this.detecting = new Promise((r) => { done = r; });
     try {
       const pts = await detectFace(img);
       if (this.img !== img) return;
@@ -75,6 +77,8 @@ export class PhotoEditor {
       console.warn('face detection failed', e);
       if (this.img === img) this.onstatus('nodetector');
     }
+    if (this.img === img) this.detecting = null;
+    done();
     this.draw();
   }
 
@@ -85,6 +89,12 @@ export class PhotoEditor {
     const [a, b, tx, ty] = similarity(this.photoLm, dst);
     const cx = this.img.width / 2, cy = this.img.height / 2;
     this.t = { s: Math.hypot(a, b), r: Math.atan2(b, a), x: a * cx - b * cy + tx, y: b * cx + a * cy + ty };
+  }
+
+  /** the photo's landmarks as face-box fractions (similarity placement only), or null */
+  fitLandmarks() {
+    if (!this.auto || !this.photoLm) return null;
+    return this.photoLm.map((p) => { const e = this.toEditor(p); return [e[0] / W, e[1] / H]; });
   }
 
   enableAuto() {

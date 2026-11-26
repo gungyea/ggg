@@ -95,6 +95,11 @@ export class Character {
       if (this.mats[n]) m.material = this.mats[n];
     }
     this.morphMeshes = this.meshes.filter((m) => m.morphTargetDictionary);
+    // own copy of the geometry (clones share it) so the face can be reshaped per photo
+    for (const m of this.meshes) {
+      m.geometry = m.geometry.clone();
+      m.userData.basePos = m.geometry.attributes.position.array.slice();
+    }
 
     this.body = { heightCm: gender === 'male' ? 175 : 162, weightKg: gender === 'male' ? 72 : 55, muscle: 0.3, headScale: 1 };
     this.applyBody(this.body);
@@ -103,6 +108,54 @@ export class Character {
   }
 
   setSkinColor(c) { this.mats.skin.color.set(c); }
+
+  /**
+   * Reshape the 3D face to the person's proportions.
+   * photoPts: the photo's 478 landmarks in face-box fractions (placed by a similarity
+   * transform only), or null to restore the default face.
+   */
+  fitFaceShape(photoPts, strength = 0.85) {
+    const { pts, tri } = this.meta.mesh;
+    const [x0, x1, z0, z1] = this.meta.faceBox;
+    const W = x1 - x0, H = z1 - z0, MAXD = 0.018;
+    const d = photoPts ? pts.map((p, i) => [photoPts[i][0] - p[0], photoPts[i][1] - p[1]]) : null;
+    const oval = [10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377,
+      152, 148, 176, 149, 150, 136, 172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109];
+    // displacement (fractions) at a point of the template
+    const at = (u, v) => {
+      for (const [a, b, c] of tri) {
+        const A = pts[a], B = pts[b], C = pts[c];
+        const den = (B[1] - C[1]) * (A[0] - C[0]) + (C[0] - B[0]) * (A[1] - C[1]);
+        const l1 = ((B[1] - C[1]) * (u - C[0]) + (C[0] - B[0]) * (v - C[1])) / den;
+        const l2 = ((C[1] - A[1]) * (u - C[0]) + (A[0] - C[0]) * (v - C[1])) / den;
+        const l3 = 1 - l1 - l2;
+        if (l1 >= -1e-6 && l2 >= -1e-6 && l3 >= -1e-6) {
+          return [l1 * d[a][0] + l2 * d[b][0] + l3 * d[c][0], l1 * d[a][1] + l2 * d[b][1] + l3 * d[c][1], 1];
+        }
+      }
+      // outside the landmark mesh: nearest face-outline point, fading out over ~8% of the box
+      let best = 1e9, bi = 0;
+      for (const i of oval) { const q = Math.hypot(pts[i][0] - u, pts[i][1] - v); if (q < best) { best = q; bi = i; } }
+      const f = Math.max(0, 1 - best / 0.08);
+      return [d[bi][0] * f * f, d[bi][1] * f * f, f];
+    };
+    for (const m of this.meshes) {
+      const pos = m.geometry.attributes.position, base = m.userData.basePos;
+      for (let i = 0; i < pos.count; i++) {
+        let x = base[i * 3], y = base[i * 3 + 1], z = base[i * 3 + 2];
+        if (d && z > 0.0 && y > z0 - 0.03 && y < z1 && x > x0 && x < x1) {
+          const u = (x - x0) / W, v = 1 - (y - z0) / H;
+          const [du, dv] = at(u, v);
+          let dx = du * W * strength, dy = -dv * H * strength;
+          const l = Math.hypot(dx, dy);
+          if (l > MAXD) { dx *= MAXD / l; dy *= MAXD / l; }
+          x += dx; y += dy;
+        }
+        pos.array[i * 3] = x; pos.array[i * 3 + 1] = y; pos.array[i * 3 + 2] = z;
+      }
+      pos.needsUpdate = true;
+    }
+  }
 
   setOutfit(o) {
     this.outfit = o;

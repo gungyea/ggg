@@ -289,6 +289,8 @@ async function initPhoto() {
     st.textContent = msg[0];
     st.className = 'fit-status ' + msg[1];
     $('#auto-fit').hidden = !(s === 'manual' && editor.photoLm);
+    // if matching finished after the character was built, refresh its face
+    if (s === 'auto' && game.character && game.mode !== 'photo') refreshFace();
   };
   $('#auto-fit').onclick = () => editor.enableAuto();
   const pick = async (file) => {
@@ -308,15 +310,33 @@ async function initPhoto() {
   $('#zoom-out').onclick = () => editor.zoom(1 / 1.06);
   $('#rot-l').onclick = () => editor.rotate(-0.03);
   $('#rot-r').onclick = () => editor.rotate(0.03);
-  $('#photo-next').onclick = () => toCustomize(false);
+  $('#photo-next').onclick = async () => {
+    // never put an unaligned photo on the 3D face: wait for face matching first
+    if (editor.detecting) {
+      $('#loading-text').textContent = '얼굴 맞추는 중…';
+      $('#loading').classList.add('show');
+      await Promise.race([editor.detecting, new Promise((r) => setTimeout(r, 30000))]);
+      $('#loading').classList.remove('show');
+    }
+    toCustomize(false);
+  };
   $('#photo-skip').onclick = () => { editor.img = null; toCustomize(true); };
 }
 
 // ================================================================ flow: customize
+function refreshFace() {
+  const face = editor.compose(1024, game.hairOverride);
+  game.face = face;
+  game.character.setSkinColor(face.skin);
+  game.character.setFace(face.canvas);
+  game.character.fitFaceShape(editor.fitLandmarks());
+}
+
 async function rebuildCharacter() {
   const old = game.character;
   const face = editor.compose(1024, game.hairOverride);
   game.face = face;
+  $('#loading-text').textContent = '3D 몸 만드는 중…';
   $('#loading').classList.add('show');
   const c = await Character.create(scene, { gender: game.gender, faceCanvas: face.canvas, skinColor: face.skin });
   $('#loading').classList.remove('show');
@@ -326,6 +346,7 @@ async function rebuildCharacter() {
     old.dispose();
   }
   game.character = c;
+  c.fitFaceShape(editor.fitLandmarks());
   syncSliders();
 }
 
