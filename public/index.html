@@ -97,15 +97,15 @@
 <!-- ============ play ============ -->
 <section class="screen" id="screen-play">
   <div class="hud-top">
-    <div class="stress" id="stress"><span>스트레스</span><div class="bar"><i></i></div><b>100%</b></div>
+    <div class="hits">타격 <b id="hits">0</b></div>
     <div class="hud-btns">
       <button class="btn icon" id="btn-sound" title="소리">🔊</button>
       <button class="btn icon" id="btn-clean" title="닦기">🧽</button>
       <button class="btn icon" id="btn-reset" title="일으키기">🧍</button>
       <button class="btn icon" id="btn-body" title="몸 바꾸기">⚙️</button>
+      <button class="btn icon" id="btn-photo" title="다른 사진">📷</button>
     </div>
   </div>
-  <div class="hits">타격 <b id="hits">0</b></div>
   <div class="combo" id="combo"></div>
   <div class="cam-btns"><button class="btn icon" id="cam-l">◀</button><button class="btn icon" id="cam-r">▶</button></div>
   <div class="charge" id="charge"><i></i></div>
@@ -115,23 +115,6 @@
 <div id="pops"></div>
 <div id="toast"></div>
 <div id="loading"><div class="spinner"></div><span id="loading-text">3D 몸 만드는 중…</span><button class="btn small" id="loading-cancel" hidden>기다리지 않고 직접 맞추기</button></div>
-
-<div id="result">
-  <div class="result-card">
-    <div class="big-emoji">😌</div>
-    <h2>스트레스 0%</h2>
-    <p>속이 좀 시원해졌나요?</p>
-    <div class="stats">
-      <div><b id="r-hits">0</b><span>타격</span></div>
-      <div><b id="r-combo">0</b><span>최대 콤보</span></div>
-      <div><b id="r-time">0</b><span>걸린 시간</span></div>
-    </div>
-    <div class="row">
-      <button class="btn ghost" id="r-new">다른 사람</button>
-      <button class="btn primary" id="r-again">계속 패기</button>
-    </div>
-  </div>
-</div>
 
 <noscript>이 게임은 자바스크립트가 필요해요.</noscript>
 <script type="module" src="js/main.js"></script>

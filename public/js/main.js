@@ -181,8 +181,7 @@ const game = {
   character: null,
   gender: 'male',
   face: null,               // {canvas, skin, hair}
-  stress: 100,
-  hits: 0, combo: 0, maxCombo: 0, lastHit: 0, startTime: 0, finished: false,
+  hits: 0, combo: 0, maxCombo: 0, lastHit: 0,
   hitstop: 0, shake: 0,
   camYaw: 0, camDist: 3.3, camTarget: new THREE.Vector3(0, 1.1, 0),
   envDecals: [],
@@ -222,8 +221,6 @@ game.score = function (amount, word, point) {
   this.lastHit = now;
   this.maxCombo = Math.max(this.maxCombo, this.combo);
   this.hits++;
-  const dmg = amount * 0.55 * (1 + Math.min(this.combo, 30) * 0.06);
-  this.stress = Math.max(0, this.stress - dmg);
   updateHud();
   if (word && point) ui.pop(word, point, amount > 10);
   if (this.combo >= 3) {
@@ -235,10 +232,6 @@ game.score = function (amount, word, point) {
       const msg = { 5: '좋아!', 10: '대박!', 15: '속이 뻥!', 20: '미쳤다!', 30: '전설의 손맛' }[this.combo];
       if (msg) ui.toast(msg);
     }
-  }
-  if (this.stress <= 0 && !this.finished) {
-    this.finished = true;
-    setTimeout(showResult, 900);
   }
 };
 
@@ -255,18 +248,7 @@ game.envSplat = function (p, n, color) {
 };
 
 function updateHud() {
-  $('#stress i').style.width = game.stress + '%';
-  $('#stress b').textContent = Math.ceil(game.stress) + '%';
   $('#hits').textContent = game.hits;
-}
-
-function showResult() {
-  sfx.win();
-  const secs = Math.round((performance.now() - game.startTime) / 1000);
-  $('#r-hits').textContent = game.hits;
-  $('#r-combo').textContent = game.maxCombo;
-  $('#r-time').textContent = secs >= 60 ? `${Math.floor(secs / 60)}분 ${secs % 60}초` : `${secs}초`;
-  $('#result').classList.add('show');
 }
 
 // ================================================================ flow: photo
@@ -437,7 +419,7 @@ function startPlay() {
   ui.show('screen-play');
   game.mode = 'play';
   game.character.startRagdoll(game.world);
-  game.stress = 100; game.hits = 0; game.combo = 0; game.maxCombo = 0; game.finished = false;
+  game.hits = 0; game.combo = 0; game.maxCombo = 0;
   game.startTime = performance.now();
   game.camYaw = 0;
   updateHud();
@@ -491,12 +473,7 @@ function initPlay() {
   };
   let muted = false;
   $('#btn-sound').onclick = () => { muted = !muted; setMuted(muted); $('#btn-sound').textContent = muted ? '🔇' : '🔊'; };
-  $('#r-again').onclick = () => {
-    $('#result').classList.remove('show');
-    game.stress = 100; game.finished = false; updateHud();
-  };
-  $('#r-new').onclick = () => {
-    $('#result').classList.remove('show');
+  $('#btn-photo').onclick = () => {
     game.tools.cancel();
     game.character.stopRagdoll();
     game.mode = 'photo';

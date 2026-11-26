@@ -66,7 +66,7 @@ const FACE = process.env.FACE;
   console.log('THROW_AFTER_RESET', landed + '/3');
   if (landed < 2) errors.push('tomato did not reach the body after reset');
   await page.screenshot({ path: OUT + '/6-tomato-after-reset.png' });
-  const state = await page.evaluate(() => ({ stress: window.__game.stress, hits: window.__game.hits, head: window.__game.character.rag.parts.head.position.y }));
+  const state = await page.evaluate(() => ({ hits: window.__game.hits, head: window.__game.character.rag.parts.head.position.y }));
   console.log('STATE', JSON.stringify(state));
   console.log('ERRORS', errors.length ? errors.join('\n') : 'none');
   await browser.close();
